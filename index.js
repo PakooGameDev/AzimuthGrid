@@ -243,12 +243,65 @@ function drawMarker(polarCoord, label) {
 
 
 
+
+function drawSector(lng1,lng2,lat1,lat2){
+  const latStep = 1; // degrees
+  const lngStep = 1.5; // degrees, which is equivalent to 1°30'
+  let sectorNumber = 1;
+  let squareNumber = 1;
+
+  for (let lng = lng1; lng <= lng2; lng += lngStep) { // Шаг в 1°30' для квадратов  
+    
+    for (let lat = lat1; lat > lat2; lat -= latStep) { // Шаг в 1 градус для квадратов
+      let settings = lng % 9 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
+
+      if (lng == 0 || lng == 18 || lng == 36 || lng == 54) {
+        settings = {color:'red', lineWidth: 2};
+      }
+      drawLine(lat, lat-latStep, lng, lng, settings)
+
+      if (lng % 9 === 0 && lat % 4 === 0 && lng < lng2) {
+        drawText(lat-latStep, lng, sectorNumber)
+        if (sectorNumber < 7) {
+          sectorNumber += 2 
+        } else {
+          sectorNumber = 1;
+          sectorNumber++
+        }    
+      }
+
+      // if (lng % 9 === 0 && lat % 1 === 0 && lng < lng2) {
+      //   drawText(lat-latStep, lng, squareNumber)
+      //   if (squareNumber < 7) {
+      //     squareNumber += 2 
+      //   } else {
+      //     squareNumber = 1;
+      //     squareNumber++
+      //   }    
+      // }
+
+    }
+  }
+
+  for (let lat = lat1; lat >= lat2; lat -= latStep) { // Шаг в 1 градус для квадратов
+    for (let lng = lng1; lng < lng2; lng += lngStep) { // Шаг в 1°30' для квадратов
+      let settings = lat % 4 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
+
+      if (lat == 40 || lat == 56 || lat == 72) {
+        settings = {color:'red', lineWidth: 2};
+      }
+      drawLine(lat, lat, lng, lng+lngStep, settings)
+    }
+  }
+}
+
 function drawSectors() {
   const latStep = 1; // degrees
   const lngStep = 1.5; // degrees, which is equivalent to 1°30'
-let squareNumber = 0;
+let squareNumber = 9;
 
   for (let lng = 0; lng <= 54; lng += lngStep) { // Шаг в 1°30' для квадратов  
+  
     for (let lat = 40; lat < 72; lat += latStep) { // Шаг в 1 градус для квадратов
       let settings = lng % 9 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
 
@@ -256,9 +309,6 @@ let squareNumber = 0;
         settings = {color:'red', lineWidth: 2};
       }
       drawLine(lat, lat+latStep, lng, lng, settings)
- 
-      
-
     }
   }
 
@@ -269,9 +319,7 @@ let squareNumber = 0;
       if (lat == 40 || lat == 56 || lat == 72) {
         settings = {color:'red', lineWidth: 2};
       }
-
       drawLine(lat, lat, lng, lng+lngStep, settings)
-
     }
   }
 }
@@ -353,7 +401,38 @@ function drawAzimuthalMap(centerLat, centerLng) {
   drawPointsAndLines();
 
   if (gridAD.checked) {
-    drawSectors()
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 2; j++) {
+        let lng1 = 0;
+        let lng2 = 18;
+        let lat1 = 72;
+        let lat2 = 56;
+    
+        let lngMult = 18;
+        let latmult = 16
+        if (i == 0) {
+          if(j == 0){
+            drawSector(lng1,lng2,lat1,lat2);
+          } else {
+            drawSector(lng1,lng2,lat1-latmult,lat2-latmult);
+          }    
+        } 
+        if(i == 1){
+          if(j == 0){
+            drawSector(lng1+lngMult,lng2+lngMult,lat1,lat2);
+          } else {
+            drawSector(lng1+lngMult,lng2+lngMult,lat1-latmult,lat2-latmult);
+          }   
+        }
+        if(i == 2){
+          if(j == 0){
+            drawSector(lng1+lngMult*2,lng2+lngMult*2,lat1,lat2);
+          } else {
+            drawSector(lng1+lngMult*2,lng2+lngMult*2,lat1-latmult,lat2-latmult);
+          }   
+        }
+      }
+    }
   }
 }
 
