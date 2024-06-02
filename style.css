@@ -1,0 +1,60 @@
+
+	body {
+		display: flex; /* Используйте flex для вертикального стека */
+		
+		align-items: center; /* Центрирование элементов по горизонтали */
+		justify-content: center; /* Центрирование элементов по вертикали */
+		gap: 20px; /* Отступ между элементами */
+		margin: 0; /* Убрать стандартные отступы */
+		padding: 0;
+	}
+
+	#pointTable {
+		width: 100%;
+		font-size: 9px;
+	}
+
+	.input{
+		display:grid;
+		grid-template-rows: 1fr 1fr;
+		grid-template-columns: 1fr 1fr ;
+	}
+
+	.settings {
+		display:flex;
+		justify-content: center;
+		
+		align-items: center;
+		flex-direction: column;
+		gap:30px;
+	}
+
+	.table-container {		
+			
+		height: 500px; /* Высота скроллбокса */	
+		overflow-y: auto;
+	}
+
+	.table-inner {
+		width: 400px;
+	}
+
+	#info {
+		z-index: 10; /* Add z-index property */
+		position: absolute;
+		font-size: 18px;
+		font-family: Arial, sans-serif;
+		color: #333;
+		background-color: #f0f0f0;
+		padding: 5px;
+		border: 1px solid #ddd;
+		border-radius: 5px;
+		display: none;
+	}
+
+
+	#manual-input-button {
+		cursor: pointer;
+	}
+
+	
