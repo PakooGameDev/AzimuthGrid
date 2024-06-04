@@ -8,6 +8,10 @@ const scaleCoef = 400;
 const size = 900; // adjustable size
 canvas.width = size;
 canvas.height = size;
+let gridCoord = [
+
+];
+
 
 const center = { x: size / 2, y: size / 2 };
 const originCoords = {x:52.4, y:29.10}
@@ -129,6 +133,27 @@ const calcInfo = (event) => {
   }
   return {distance: distance, azimuth: angle, coords: coords}
 }
+function mergeArrays(array1, array2) {
+  let arr = [];
+    for (var i = 0; i < array1.length; i++) {
+      for (var j = 0; j < array2.length; j++){
+        if (array1[i].y1 == array2[j].y1 && array1[i].y2 == array2[j].y2 && array1[i].x1 == array2[j].x1 && array1[i].x2 == array2[j].x2){
+          arr.push({
+            y1:array1[i].y1,
+            y2:array1[i].y2,
+            x1:array1[i].x1,
+            x2:array1[i].x2,
+            horizontalRow:array1[i].horizontalRow,
+            verticalRow:array2[j].verticalRow
+          })
+        }  
+      }
+
+
+    }
+  return arr;
+}
+
 
 /* ----------------------------------------------------------------------------------------------------------- */
 
@@ -241,89 +266,121 @@ function drawMarker(polarCoord, label) {
   }
 }
 
+let sectorsInfo = [];
+let zoneInfo = [];
+let squareInfo = [];
+let squareHorInfo = [];
+let squareVertInfo = [];
+
+function drawSectorSquares(y1,y2,x1,x2,  sectNumber, zone) {
+  const xStep = 1; 
+  const yStep = 1.5; 
+
+  let verticalRow = 5;
+  let horizontalRow = 4;
 
 
 
-function drawSector(lng1,lng2,lat1,lat2){
-  const latStep = 1; // degrees
-  const lngStep = 1.5; // degrees, which is equivalent to 1°30'
-  let sectorNumber = 1;
-  let squareNumber = 1;
+  sectorsInfo.push({y1,y2,x1,x2,sectNumber})  
 
-  for (let lng = lng1; lng <= lng2; lng += lngStep) { // Шаг в 1°30' для квадратов  
-    
-    for (let lat = lat1; lat > lat2; lat -= latStep) { // Шаг в 1 градус для квадратов
-      let settings = lng % 9 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
 
-      if (lng == 0 || lng == 18 || lng == 36 || lng == 54) {
-        settings = {color:'red', lineWidth: 2};
-      }
-      drawLine(lat, lat-latStep, lng, lng, settings)
+  for (let y = y1; y <= y2; y += yStep) { 
+    for (let x = x1; x > x2; x -= xStep) { 
+      let settings = y % 9 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
+      if (!(y == 0 || y == 18 || y == 36 || y == 54)) {
+        drawLine(x, x-xStep, y, y, settings)
+      } 
+      if(y != y2){
+        if(y % 9 == 0){
+           drawText(x-xStep, y-0.3, horizontalRow )
+        }
+      
+        let curX = x-xStep
+        let curY = y+yStep
+       
+        squareHorInfo.push({y1:y,y2:curY,x1:curX,x2:x,horizontalRow})
 
-      if (lng % 9 === 0 && lat % 4 === 0 && lng < lng2) {
-        drawText(lat-latStep, lng, sectorNumber)
-        if (sectorNumber < 7) {
-          sectorNumber += 2 
+        if(horizontalRow == 1){
+          horizontalRow = 4
         } else {
-          sectorNumber = 1;
-          sectorNumber++
-        }    
+          horizontalRow--
+        }
       }
-
-      // if (lng % 9 === 0 && lat % 1 === 0 && lng < lng2) {
-      //   drawText(lat-latStep, lng, squareNumber)
-      //   if (squareNumber < 7) {
-      //     squareNumber += 2 
-      //   } else {
-      //     squareNumber = 1;
-      //     squareNumber++
-      //   }    
-      // }
-
     }
   }
 
-  for (let lat = lat1; lat >= lat2; lat -= latStep) { // Шаг в 1 градус для квадратов
-    for (let lng = lng1; lng < lng2; lng += lngStep) { // Шаг в 1°30' для квадратов
-      let settings = lat % 4 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
-
-      if (lat == 40 || lat == 56 || lat == 72) {
-        settings = {color:'red', lineWidth: 2};
+  for (let x = x1; x >= x2; x -= xStep) { 
+    for (let y = y1; y < y2; y += yStep) { 
+      let settings = x % 4 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
+      if (!(x == 40 || x == 56 || x == 72)) {
+        drawLine(x, x, y, y+yStep, settings)
       }
-      drawLine(lat, lat, lng, lng+lngStep, settings)
+
+      if(x != x2){
+        if(x % 4 == 0){
+          drawText(x-0.8, y+0.2, verticalRow == 10 ? 0 : verticalRow )
+        }
+     
+        let curX = x-xStep
+        let curY = y+yStep
+
+       if(verticalRow == 10){
+        squareVertInfo.push({y1:y,y2:curY,x1:curX,x2:x, verticalRow:0 })
+       } else {
+        squareVertInfo.push({y1:y,y2:curY,x1:curX,x2:x,verticalRow:verticalRow})
+       }
+        
+
+        if(verticalRow == 10){
+          verticalRow = 5
+        } else {
+          verticalRow++
+        }
+      }
+
+      
+    }
+  }
+   squareInfo = [];
+  squareInfo = mergeArrays(squareHorInfo, squareVertInfo)
+
+  drawText(x1-3*xStep, y1+2*yStep, `${zone}${sectNumber}`, 14, 'red')
+}
+
+
+function drawZone(y1,y2,x1,x2, zoneNumber){
+  const xStep = 1; // degrees
+  const yStep = 1.5; // degrees, which is equivalent to 1°30'
+  let sectorNumber = 1;
+  zoneInfo.push({y1,y2,x1,x2,zoneNumber})  
+  //веертикальные линии
+  for (let y = y1; y <= y2; y += yStep) { // Шаг в 1°30' для квадратов  
+    for (let x = x1; x > x2; x -= xStep) { // Шаг в 1 градус для квадратов
+      if (y == 0 || y == 18 || y == 36 || y == 54) { 
+       drawLine(x, x-xStep, y, y, {color:'red', lineWidth: 2})
+      } 
+      
+    }
+  }
+  //горизонтальные линии
+  for (let x = x1; x >= x2; x -= xStep) { 
+    for (let y = y1; y < y2; y += yStep) { 
+      if (x == 40 || x == 56 || x == 72) {
+        drawLine(x, x, y, y+yStep, {color:'red', lineWidth: 2})
+      }   
+    }
+  }
+
+  // Разделение зоны на сектора и их отрисовка
+  for (let i = 0; i < 4; i++) { // 4 columns
+    for (let j = 0; j < 2; j++) { // 2 rows
+      let sectorX1 = x1 - i * 4;
+      let sectorY1 = y1 + j * 9;
+      drawSectorSquares(sectorY1, sectorY1 + 9, sectorX1, sectorX1 - 4, sectorNumber, zoneNumber);
+      sectorNumber++;
     }
   }
 }
-
-function drawSectors() {
-  const latStep = 1; // degrees
-  const lngStep = 1.5; // degrees, which is equivalent to 1°30'
-let squareNumber = 9;
-
-  for (let lng = 0; lng <= 54; lng += lngStep) { // Шаг в 1°30' для квадратов  
-  
-    for (let lat = 40; lat < 72; lat += latStep) { // Шаг в 1 градус для квадратов
-      let settings = lng % 9 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
-
-      if (lng == 0 || lng == 18 || lng == 36 || lng == 54) {
-        settings = {color:'red', lineWidth: 2};
-      }
-      drawLine(lat, lat+latStep, lng, lng, settings)
-    }
-  }
-
-  for (let lat = 40; lat <= 72; lat += latStep) { // Шаг в 1 градус для квадратов
-    for (let lng = 0; lng < 54; lng += lngStep) { // Шаг в 1°30' для квадратов
-      let settings = lat % 4 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
-
-      if (lat == 40 || lat == 56 || lat == 72) {
-        settings = {color:'red', lineWidth: 2};
-      }
-      drawLine(lat, lat, lng, lng+lngStep, settings)
-    }
-  }
-}
-
 
 function drawLine(lat1, lat2, lng1,lng2, settings) {
 
@@ -357,7 +414,7 @@ function drawLine(lat1, lat2, lng1,lng2, settings) {
   ctx.stroke();
 }
 
-function drawText(lat, lng, text, latStep = 1,lngStep = 1.5) {
+function drawText(lat, lng, text,fontSize = 10, color = 'black', latStep = 1,lngStep = 1.5 ) {
   // Вычисляем координаты центра сектора или квадрата
   const polarCenter = toPolar((lat + latStep / 2), (lng + lngStep / 2), originCoords.x, originCoords.y);
   const radiusCenter = polarCenter.distance / maxDistance * scaleCoef;
@@ -370,8 +427,8 @@ function drawText(lat, lng, text, latStep = 1,lngStep = 1.5) {
   ctx.textBaseline = 'middle';
 
   // Рисуем текст на холсте
-  ctx.fillStyle = 'black';
-  ctx.font = '14px Arial';
+  ctx.fillStyle = color;
+  ctx.font = `${fontSize}px April`;
   ctx.fillText(text, centerX, centerY);
 }
 /* ----------------------------------------------------------------------------------------------------------- */
@@ -379,7 +436,9 @@ function drawText(lat, lng, text, latStep = 1,lngStep = 1.5) {
 function drawAzimuthalMap(centerLat, centerLng) {
   let gridAz = document.getElementById('gridAz');
   let gridAD = document.getElementById('gridAD');
-
+  sectorsInfo = [];
+  zoneInfo = [];
+ squareInfo = [];
   // Очистка холста
   ctx.clearRect(0, 0, size, size);
 
@@ -396,7 +455,7 @@ function drawAzimuthalMap(centerLat, centerLng) {
       drawAzimuthValues(15, angle);
     }
   }
-
+  
   drawBorder(centerLat, centerLng);
   drawPointsAndLines();
 
@@ -407,33 +466,34 @@ function drawAzimuthalMap(centerLat, centerLng) {
         let lng2 = 18;
         let lat1 = 72;
         let lat2 = 56;
-    
+       // drawZone(lng1,lng2,lat1,lat2);
         let lngMult = 18;
         let latmult = 16
         if (i == 0) {
           if(j == 0){
-            drawSector(lng1,lng2,lat1,lat2);
+            drawZone(lng1,lng2,lat1,lat2,'07');
           } else {
-            drawSector(lng1,lng2,lat1-latmult,lat2-latmult);
+            drawZone(lng1,lng2,lat1-latmult,lat2-latmult,'17');
           }    
         } 
         if(i == 1){
           if(j == 0){
-            drawSector(lng1+lngMult,lng2+lngMult,lat1,lat2);
+            drawZone(lng1+lngMult,lng2+lngMult,lat1,lat2,'08');
           } else {
-            drawSector(lng1+lngMult,lng2+lngMult,lat1-latmult,lat2-latmult);
+            drawZone(lng1+lngMult,lng2+lngMult,lat1-latmult,lat2-latmult,'18');
           }   
         }
         if(i == 2){
           if(j == 0){
-            drawSector(lng1+lngMult*2,lng2+lngMult*2,lat1,lat2);
+            drawZone(lng1+lngMult*2,lng2+lngMult*2,lat1,lat2,'09');
           } else {
-            drawSector(lng1+lngMult*2,lng2+lngMult*2,lat1-latmult,lat2-latmult);
+            drawZone(lng1+lngMult*2,lng2+lngMult*2,lat1-latmult,lat2-latmult,'19');
           }   
         }
       }
     }
   }
+
 }
 
 let points = {};
@@ -519,15 +579,56 @@ allPoints.sort((a, b) => {
 }
 /* ----------------------------------------------------------------------------------------------------------- */
 
-//отображает под курсором информацию о азимуте и дальности
+
+
+// Функция для определения сектора по координатам курсора
+function getNumberByCoords(x, y) {
+  let sector = 0;
+  let zone = '0';
+  let square = '00';
+
+  sectorsInfo.forEach(el => {
+    if (x <= el.x1 && x >= el.x2 && y >= el.y1 && y <= el.y2) {
+      sector = el.sectNumber
+    }
+  })
+
+  zoneInfo.forEach(el => {
+    if (x <= el.x1 && x >= el.x2 && y >= el.y1 && y <= el.y2) {
+
+      zone = el.zoneNumber    
+    }
+  })
+
+  squareInfo.forEach(el => {
+    
+
+    if (x <= el.x2 && x >= el.x1 && y >= el.y1 && y <= el.y2) {
+      
+      square = `${el.horizontalRow} ${el.verticalRow}`    
+      
+    }
+  })
+
+  return {sector, zone, square};
+}
+
+// Измененный обработчик события mousemove
 canvas.addEventListener('mousemove', (e) => {
-  document.getElementById('info').innerText = 
-       `Азимут: ${calcInfo(e).azimuth.toFixed(2)}°, 
-        Дальность: ${calcInfo(e).distance.toFixed(2)} км, 
-        Координаты: ${calcInfo(e).coords.lat.toFixed(2)}, ${calcInfo(e).coords.lng.toFixed(2)}`;
-  document.getElementById('info').style.top = `${e.clientY + 10}px`;
-  document.getElementById('info').style.left = `${e.clientX + 10}px`;
-  document.getElementById('info').style.display = 'block';
+  let sector = getNumberByCoords(calcInfo(e).coords.lat.toFixed(2),calcInfo(e).coords.lng.toFixed(2));
+  //console.log(sector)
+    document.getElementById('info').innerText = 
+         `Азимут: ${calcInfo(e).azimuth.toFixed(2)}°, 
+          Дальность: ${calcInfo(e).distance.toFixed(2)} км, 
+          Координаты: ${calcInfo(e).coords.lat.toFixed(2)}, ${calcInfo(e).coords.lng.toFixed(2)},
+          Сетка ПВО: ${sector.zone}${sector.sector} ${sector.square}
+          `;
+
+    document.getElementById('info').style.top = `${e.clientY + 10}px`;
+    document.getElementById('info').style.left = `${e.clientX + 10}px`;
+    document.getElementById('info').style.display = 'block';          
+    // ... остальная часть вашего кода ...
+  
 });
 
 //скрывает информацию, когда курсор вне сетки
