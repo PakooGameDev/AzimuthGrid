@@ -20,76 +20,73 @@
 <body>
 	<div id="info"></div>
 	<canvas id="azimuthalGrid"></canvas>
-	<div class="settings">   
-		<form>
-			<input id="gridAD" type="checkbox">
-			<label for="gridAD">Отобразить сетку ПВО</label>
-		  </form>
-		  <form>
-			<input id="gridAz" type="checkbox">
-			<label for="gridAz">Отобразить азимутальную сетку</label>
-		  </form>
-		<div class="input">
-		  <input id="gridDistance" type="number" placeholder="Максимальная дальность сетки" >
-		  <button id="setter">Установить настройки</button>
+	<div class="settings">  
+		
+
+
+		<div id="checkers">
+			<form>
+				<input id="gridAD" type="checkbox">
+				<label for="gridAD">Отобразить сетку ПВО</label>
+			  </form>
+			  <form>
+				<input id="gridAz" type="checkbox" checked>
+				<label for="gridAz">Отобразить азимутальную сетку</label>
+			  </form>
+			  <form>
+				<input id="borderGen" type="checkbox" checked>
+				<label for="borderGen">Отобразить границу</label>
+			  </form>
 		</div>
+
+		<div id="originSet">		
+			<input id="latSet" type="number" placeholder="Широта (десятичные)" >
+			<input id="lngSet" type="number" placeholder="Долгота (десятичные)" >
+			<input id="locationName" type="text" placeholder="Название локации">
+			<button id="coordsSetter">Установить центр</button>
+		</div>
+
+	  <div class="input">
+		<input id="gridDistance" type="number" placeholder="Максимальная дальность сетки" >
+		<button id="setter">Установить настройки</button>
+	  </div>
 	  <div id="manual-input-info" class="input">
-		<input id="idManualInput" type="number" placeholder="Номер">
+		<button id="manual-input-button">Ручной ввод отключен</button>
+		<input id="idManualInput" type="number" placeholder="Номер" value="3801" required>
 		<input id="affiliationManualInput" type="number" placeholder="Принадлежность">
 		<input id="heightManualInput" type="number" placeholder="Высота">
 		<input id="speedManualInput" type="number" placeholder="Скорость">
 		<input id="signalManualInput" type="number" placeholder="Сигнал">
-		<input id="timeManualInput" type="number" placeholder="Время">
-		<button id="manual-input-button">Ручной ввод отключен</button>
-		<input id="idRemove" type="number" placeholder="Номер" value="3801">
+		<input id="timeManualInput" type="number" placeholder="Время" value="0" required>
 	  </div>
+
+
+	  <div id="tables">
 		<div class="import">
-		  <input type="file" id="fileInput">
-		  <input id="sheet" type="text" placeholder="Название листа">
-		  <button id="readFile">Import data</button>
+			<input type="file" id="fileInput">
+			<input id="sheet" type="text" placeholder="Название листа">
+			<button id="readFile">Import data</button>
+		  </div>
+		<div id="tableButtons">
+			
+			<button id="exportTable">Export XLSX</button>
+			<button id="changeTable">Переключиться на таблицу с азимутами</button>
 		</div>
-		<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-	  <!-- Created with Inkscape (http://www.inkscape.org/) -->
-	  
-		<div class="table">
-		  <button id="exportTable">Export XLSX</button>
-		  <div class="table-container">
-			  <div class="table-inner">
-				  <table id="pointTable" border="1" baffiliation="1" cellpadding="4" cellspacing="0">
-					  <thead>
-						<tr>
-						  <th rowspan="2">Номер</th>
-						  <th rowspan="2">Азимут</th>
-						  <th rowspan="2">Дальность</th>
-						  <th colspan="3">Характеристики</th>
-						  <th rowspan="2">Сигнал</th>
-						  <th rowspan="2">Время</th>
-						</tr>
-						<tr>
-						  <th>Принадлежность</th><th>Высота</th><th>Скорость</th>
-						</tr>
-					  </thead>
-					  <tbody>
-					  </tbody>
-					</table>
-			  </div>
-			</div>
+
+		<div id="tableAz" class="table">		  
 			<div class="table-container">
 				<div class="table-inner">
-					<table id="pointGridTable" border="1" baffiliation="1" cellpadding="3" cellspacing="0">
+					<table id="pointTable" border="1" baffiliation="1" cellpadding="4" cellspacing="0">
 						<thead>
 						  <tr>
 							<th rowspan="2">Номер</th>
-							<th rowspan="2">Зона,сектор</th>
-							<th colspan="2">Большой квадрат</th>
-							<th rowspan="2">Квадраты</th>
+							<th rowspan="2">Азимут</th>
+							<th rowspan="2">Дальность</th>
 							<th colspan="3">Характеристики</th>
 							<th rowspan="2">Сигнал</th>
 							<th rowspan="2">Время</th>
 						  </tr>
 						  <tr>
-							<th>1</th>
-							<th>2</th>
 							<th>Принадлежность</th><th>Высота</th><th>Скорость</th>
 						  </tr>
 						</thead>
@@ -98,7 +95,35 @@
 					  </table>
 				</div>
 			  </div>
-		</div>
+		  </div>
+		  <div id="tableAd" class="table">
+			  <div class="table-container">
+				  <div class="table-inner">
+					  <table id="pointGridTable" border="1" baffiliation="1" cellpadding="3" cellspacing="0">
+						  <thead>
+							<tr>
+							  <th rowspan="2">Номер</th>
+							  <th rowspan="2">Зона,сектор</th>
+							  <th colspan="2">Большой квадрат</th>
+							  <th rowspan="2">Квадраты</th>
+							  <th colspan="3">Характеристики</th>
+							  <th rowspan="2">Сигнал</th>
+							  <th rowspan="2">Время</th>
+							</tr>
+							<tr>
+							  <th>1</th>
+							  <th>2</th>
+							  <th>Принадлежность</th><th>Высота</th><th>Скорость</th>
+							</tr>
+						  </thead>
+						  <tbody>
+						  </tbody>
+						</table>
+				  </div>
+				</div>
+		  </div>
+	  </div>
+
 	  </div>
 
 	<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>

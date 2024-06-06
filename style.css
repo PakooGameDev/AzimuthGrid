@@ -3,15 +3,51 @@
 		display: flex; /* Используйте flex для вертикального стека */
 		
 		align-items: center; /* Центрирование элементов по горизонтали */
-		justify-content: center; /* Центрирование элементов по вертикали */
+		justify-content: space-around; /* Центрирование элементов по вертикали */
 		gap: 20px; /* Отступ между элементами */
 		margin: 0; /* Убрать стандартные отступы */
 		padding: 0;
 	}
 
-	#pointTable {
+	#pointTable, #pointGridTable {
 		width: 100%;
 		font-size: 9px;
+	}
+
+
+	.table-inner {
+		width: auto;
+	}
+
+	#tables {
+		display: flex; /* Используйте flex для вертикального стека */
+		flex-direction: column;
+		gap: 20px; /* Отступ между элементами */
+	}
+
+	#changeTable, #exportTable {
+		width: auto;	
+	}
+
+#originSet{
+	display:grid;
+	grid-template-rows: 1fr 1fr;
+	grid-template-columns: 1fr 1fr ;
+}
+
+	#tableButtons{
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 20px; 
+	}
+	
+	#tableAz {
+		display: block;
+	}
+
+	#tableAd {
+		display: none;
 	}
 
 	.input{
@@ -22,22 +58,23 @@
 
 	.settings {
 		display:flex;
-		justify-content: center;
-		
-		align-items: center;
+		justify-content: space-around;
+
+		align-items: space-around;
 		flex-direction: column;
-		gap:30px;
+		gap:20px;
 	}
 
 	.table-container {		
 			
-		height: 500px; /* Высота скроллбокса */	
+		height: auto; /* Высота скроллбокса */
+		max-height: 220px;	
 		overflow-y: auto;
+		min-width: 600px;
+		max-width: 600px;
 	}
 
-	.table-inner {
-		width: 400px;
-	}
+
 
 	#info {
 		z-index: 10; /* Add z-index property */

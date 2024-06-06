@@ -1,32 +1,6 @@
 const canvas = document.getElementById('azimuthalGrid');
 const ctx = canvas.getContext('2d');
 
-let maxDistance = document.getElementById('gridDistance').value || 400;
-
-const minDistance = 20; // km
-
-const scaleCoef = 400; // масштаб для пикселей
-const size = 900; 
-canvas.width = size;
-canvas.height = size;
-
-let sectorsInfo = [];
-let zoneInfo = [];
-let squareInfo = [];
-let squareHorInfo = [];
-let squareVertInfo = [];
-
-let points = {};
-let pointsGrid = {};
-let allPoints = []
-let allGridPoints = []
-let prevId = null;
-
-const center = { x: size / 2, y: size / 2 };
-
-// центр круга - Мозырь
-const originCoords = {x:52.4, y:29.10}
-
 // координаты границы Беларуси
 const geoJson = {
   "type": "FeatureCollection",
@@ -49,8 +23,49 @@ const geoJson = {
   ]
 };
 
-const gridAz = document.getElementById('gridAz');
-const gridAd = document.getElementById('gridAD');
+let distanceStep = 10;
+let azimuthStep = 10;
+let minDistance = 20;
+
+const scaleCoef = 400; // масштаб для пикселей
+const size = 900; 
+
+const center = { x: size / 2, y: size / 2 };
+
+
+canvas.width = size;
+canvas.height = size;
+
+
+let originName = 'Бриллиант';
+
+// центр круга - Мозырь по стандарту
+let originCoords = {x:52.04, y:29.10}
+
+let maxDistance = document.getElementById('gridDistance').value || 400;
+
+let sectorsInfo = [];
+let zoneInfo = [];
+let squareInfo = [];
+let squareHorInfo = [];
+let squareVertInfo = [];
+
+let points = {};
+let allPoints = []
+
+/* ----------------------------------------------------------------------------------------------------------- */
+
+// Установка начального состояния
+document.getElementById('tableAz').style.display = 'block'; 
+document.getElementById('tableAd').style.display = 'none'; 
+
+document.getElementById('changeTable').addEventListener('click', () => {
+  let tableAz = document.getElementById('tableAz');
+  let tableAd = document.getElementById('tableAd');
+
+  tableAz.style.display = tableAz.style.display == 'block' ? 'none' : 'block';
+  tableAd.style.display = tableAd.style.display == 'none' ? 'block' : 'none';
+});
 
 /* ----------------------------------------------------------------------------------------------------------- */
 
@@ -60,19 +75,45 @@ document.getElementById('setter').addEventListener('click', () => {
   drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
 
-// рендер кэнваса после загрузки страницы
-document.addEventListener('DOMContentLoaded', (event) => {
+/* ----------------------------------------------------------------------------------------------------------- */
+
+let latSet = document.getElementById('latSet').value || 52.04
+let lngSet = document.getElementById('lngSet').value || 29.10
+let locSet = document.getElementById('locationName').value || 'Бриллиант'
+
+document.getElementById('coordsSetter').addEventListener('click', () => {
+  originName = locSet
+  originCoords.x=parseFloat(latSet);
+  originCoords.y=parseFloat(lngSet)
   drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
 
+/* ----------------------------------------------------------------------------------------------------------- */
+
+// рендер кэнваса после загрузки страницы
+document.addEventListener('DOMContentLoaded', (event) => {
+  drawAzimuthalMap(originCoords.x, originCoords.y); 
+
+});
+
+/* ----------------------------------------------------------------------------------------------------------- */
+
+const gridAz = document.getElementById('gridAz');
+const gridAd = document.getElementById('gridAD');
+const borderSet = document.getElementById('borderGen');
 
 // обработка галочки "включить сетку ПВО"
-gridAd.addEventListener('change', function() {
+gridAd.addEventListener('change', () => {
+  drawAzimuthalMap(originCoords.x, originCoords.y); 
+});
+
+// обработка галочки "Отобразить границу"
+borderSet.addEventListener('change', () => {
   drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
 
 // обработка галочки "включить азимутальную сетку"
-gridAz.addEventListener('change', function() {
+gridAz.addEventListener('change', () => {
   drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
 
@@ -80,24 +121,59 @@ gridAz.addEventListener('change', function() {
 
 // Формула большого круга
 function greatCircleDistance(lat1, lon1, lat2, lon2) {
-	const R = 6371; // радиус Земли в километрах
-	const φ1 = lat1 * Math.PI / 180; // φ, λ в радианах
-	const φ2 = lat2 * Math.PI / 180;
-	const Δφ = (lat2-lat1) * Math.PI / 180;
-	const Δλ = (lon2-lon1) * Math.PI / 180;
+  const a = 6378137; // длина большой полуоси Земли в метрах (WGS-84)
+  const b = 6356752.314245; // длина малой полуоси Земли в метрах (WGS-84)
+  const f = 1 / 298.257223563; // сплюснутость Земли (WGS-84)
 
-	const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-				Math.cos(φ1) * Math.cos(φ2) *
-				Math.sin(Δλ/2) * Math.sin(Δλ/2);
-	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const L = (lon2 - lon1) * Math.PI / 180;
+  const U1 = Math.atan((1 - f) * Math.tan(lat1 * Math.PI / 180));
+  const U2 = Math.atan((1 - f) * Math.tan(lat2 * Math.PI / 180));
+  const sinU1 = Math.sin(U1);
+  const cosU1 = Math.cos(U1);
+  const sinU2 = Math.sin(U2);
+  const cosU2 = Math.cos(U2);
 
-	return R * c; // в километрах
+  let λ = L;
+  let λP;
+  let iterLimit = 100;
+  let sinλ, cosλ, sinσ, cosσ, σ, sinα, cos2α, cos2σm, C;
+  do {
+    sinλ = Math.sin(λ);
+    cosλ = Math.cos(λ);
+    sinσ = Math.sqrt((cosU2 * sinλ) * (cosU2 * sinλ) +
+      (cosU1 * sinU2 - sinU1 * cosU2 * cosλ) *
+      (cosU1 * sinU2 - sinU1 * cosU2 * cosλ));
+    if (sinσ == 0) return 0; // совпадающие точки
+
+    cosσ = sinU1 * sinU2 + cosU1 * cosU2 * cosλ;
+    σ = Math.atan2(sinσ, cosσ);
+    sinα = cosU1 * cosU2 * sinλ / sinσ;
+    cos2α = 1 - sinα * sinα;
+    cos2σm = cosσ - 2 * sinU1 * sinU2 / cos2α;
+    if (isNaN(cos2σm)) cos2σm = 0; // экваториальная линия: cos2αm=0 (6)
+    C = f / 16 * cos2α * (4 + f * (4 - 3 * cos2α));
+    λP = λ;
+    λ = L + (1 - C) * f * sinα *
+      (σ + C * sinσ * (cos2σm + C * cosσ * (-1 + 2 * cos2σm * cos2σm)));
+  } while (Math.abs(λ - λP) > 1e-12 && --iterLimit > 0);
+
+  if (iterLimit == 0) return NaN; // не сошлось, возможно, плохие данные
+
+  const uSq = cos2α * (a * a - b * b) / (b * b);
+  const A = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
+  const B = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
+  const Δσ = B * sinσ * (cos2σm + B / 4 * (cosσ * (-1 + 2 * cos2σm * cos2σm) -
+    B / 6 * cos2σm * (-3 + 4 * sinσ * sinσ) * (-3 + 4 * cos2σm * cos2σm)));
+
+  const s = b * A * (σ - Δσ); // расстояние между точками в метрах
+
+  return s / 1000; // возвращаем расстояние в километрах
 }
 
 // географические координаты в полярные координаты
 function toPolar(lat, lng, centerLat, centerLng) {
   const distance = greatCircleDistance(centerLat, centerLng, lat, lng);
- //if (distance > maxDistance) return null; // Игнорируем точки за пределами maxDistance
+  //if (distance > maxDistance) return null; // Игнорируем точки за пределами maxDistance
 
   // Преобразование координат в радианы
   const latRad = lat * Math.PI / 180;
@@ -138,6 +214,17 @@ function polarToGeographic(radius, angle) {
   };
 }
 
+function polarToGrid(distance, azimuth) {
+  let polar = polarToGeographic(distance, azimuth);
+  let grid = geoToGridCoords(polar.lat, polar.lng);
+  let sectorAndZone = `${grid.zone}${grid.sector}`;
+  let squareHor = grid.squareHor;
+  let squareVert = grid.squareVert;
+  let squares = `${grid.middleSquare}${grid.smallSquare}/${grid.additionalSquare}`;
+
+  return [sectorAndZone, squareHor, squareVert, squares];
+}
+
 // Функция для определения азимута,дальности,географических координат по положению курсора
 const getInfoUnderCursor = (event) => {
   const rect = canvas.getBoundingClientRect();
@@ -155,6 +242,8 @@ const getInfoUnderCursor = (event) => {
   }
   return {distance: distance, azimuth: angle, coords: coords}
 }
+
+/* ----------------------------------------------------------------------------------------------------------- */
 
 // Функция для определения координат сетки ПВО по географическим координатам
 function geoToGridCoords(x, y) {
@@ -193,7 +282,7 @@ function geoToGridCoords(x, y) {
     }
   });
 
-  return {sector, zone, squareHor,squareVert,middleSquare,smallSquare,additionalSquare};
+  return {zone, sector, squareHor, squareVert, middleSquare, smallSquare, additionalSquare};
 }
 
 // делит каждый сектор на квадраты вплоть до дополнительного
@@ -202,8 +291,8 @@ function getSquareIndexes(x, y, x1, x2, y1, y2) {
   const height = y2 - y1;
 
   // Разделение на 9 средних квадратов
-  const midSquareWidth = width * 0.33;
-  const midSquareHeight = height * 0.33;
+  const midSquareWidth = width /3;
+  const midSquareHeight = height /3;
 
   // Разделение каждого среднего квадрата на 9 малых
   const smallSquareWidth = midSquareWidth / 3;
@@ -270,42 +359,20 @@ function getSquareIndexes(x, y, x1, x2, y1, y2) {
   return { midSquare, smallSquare, additionalSquare };
 }
 
-function mergeArrays(array1, array2) {
-  let arr = [];
-    for (var i = 0; i < array1.length; i++) {
-      for (var j = 0; j < array2.length; j++){
-        if (array1[i].y1 == array2[j].y1 && array1[i].y2 == array2[j].y2 && array1[i].x1 == array2[j].x1 && array1[i].x2 == array2[j].x2){
-          arr.push({
-            y1:array1[i].y1,
-            y2:array1[i].y2,
-            x1:array1[i].x1,
-            x2:array1[i].x2,
-            horizontalRow:array1[i].horizontalRow,
-            verticalRow:array2[j].verticalRow
-          })
-        }  
-      }
-
-
-    }
-  return arr;
-}
-
-
 /* ----------------------------------------------------------------------------------------------------------- */
 
 function drawCircle(radius) {
   const pixelRadius = radius / maxDistance * scaleCoef; // Преобразование км в пиксели
   
     if (radius % 100 === 0) {
-      ctx.strokeStyle = 'black'; // Каждые 100 км
+      ctx.strokeStyle = '#f54242'; // Каждые 100 км
       ctx.lineWidth = 5;
     } else if (radius % 50 === 0) {
       ctx.lineWidth = 5;
-      ctx.strokeStyle = 'gray'; // Каждые 50 км
+      ctx.strokeStyle = '#f54242'; // Каждые 50 км
     } else {
       ctx.lineWidth = 1;
-      ctx.strokeStyle = '#adacac'; // Для всех остальных расстояний
+      ctx.strokeStyle = '#b0d0ff'; // Для всех остальных расстояний
     }
   
   ctx.beginPath();
@@ -319,7 +386,7 @@ function drawAzimuthLine(angle) {
   const startPixelRadius =  minDistance / maxDistance * scaleCoef;
   const endPixelRadius = maxDistance / maxDistance * scaleCoef;
 
-  angle % 30 === 0 ? ctx.strokeStyle = 'black' : ctx.strokeStyle = 'gray';
+  angle % 30 === 0 ? ctx.strokeStyle = '#f54242' : ctx.strokeStyle = '#b0d0ff';
   ctx.beginPath();
   // Начальная точка на расстоянии 20 км от центра
   ctx.moveTo(center.x + startPixelRadius * Math.cos(radian), center.y + startPixelRadius * Math.sin(radian));
@@ -343,6 +410,8 @@ function drawAzimuthValues(gap, angle) {
 
   ctx.fillText(angle, x, y); // Отрисовка значения угла
 }
+
+/* ----------------------------------------------------------------------------------------------------------- */
 
 function drawBorder(centerLat, centerLng) {
   geoJson.features.forEach(feature => {
@@ -406,109 +475,93 @@ function drawMarker(polarCoord, label) {
   }
 }
 
-function drawSectorSquares(y1,y2,x1,x2,  sectNumber, zone) {
+/* ----------------------------------------------------------------------------------------------------------- */
+
+function determineSquareNum(y1, y2, x1, x2, sectNumber, zone) {
   const xStep = 1; 
-  const yStep = 1.5; 
+  const yStep = 1.5;
 
-  let verticalRow = 5;
-  let horizontalRow = 4;
+  sectorsInfo.push({ y1, y2, x1, x2, sectNumber }); // сохраняем координаты и номер сектора
 
-  sectorsInfo.push({y1,y2,x1,x2,sectNumber})  
+  // вычисляем координаты квадратов и определяем их номера по горизонтали и вертикали
+  for (let horizontalRow = 4; horizontalRow > 0; horizontalRow--) {
+    for (let verticalRow = 5; verticalRow <= 10; verticalRow++) {
+      let sectorX1 = x2 + horizontalRow * xStep;
+      let sectorY1 = y1 + (verticalRow - 5) * yStep;
 
-  for (let y = y1; y <= y2; y += yStep) { 
-    for (let x = x1; x > x2; x -= xStep) { 
-      let settings = y % 9 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
-      if (!(y == 0 || y == 18 || y == 36 || y == 54)) {    
-        drawLine(x, x-xStep, y, y, settings)
-      } 
-
-      
-      if(y != y2){
-        if(y % 9 == 0){
-           drawText(x-xStep, y-0.3, horizontalRow )
+      // рисуем в первых рядах секторов цифры-номера рядов и столбцов со смещением
+      if (sectorX1 >= x2 && sectorY1 <= y2) {
+        if (sectorY1 != y2 && sectorY1 % 9 == 0) {
+          drawText(sectorX1 - xStep - 0.1, sectorY1 - 0.25, horizontalRow); 
         }
-        let curX = x-xStep
-        let curY = y+yStep
-       
-        squareHorInfo.push({y1:y,y2:curY,x1:curX,x2:x,horizontalRow})
 
-        if(horizontalRow == 1){
-          horizontalRow = 4
-        } else {
-          horizontalRow--
+        if (sectorX1 != x2 && sectorX1 % 4 == 0) {
+          drawText(sectorX1 - xStep + 0.1, sectorY1 + 0.3, verticalRow == 10 ? 0 : verticalRow);
         }
+        // сохраняем координаты о квадратах в секторе с их номерами
+        squareInfo.push({
+          y1: sectorY1,
+          y2: sectorY1 + yStep,
+          x1: sectorX1 - xStep,
+          x2: sectorX1,
+          horizontalRow,
+          verticalRow: verticalRow == 10 ? 0 : verticalRow
+        });
       }
     }
   }
-
-  for (let x = x1; x >= x2; x -= xStep) { 
-    for (let y = y1; y < y2; y += yStep) { 
-      let settings = x % 4 ? {color:'RoyalBlue', lineWidth: 0.5} : {color:'darkblue', lineWidth: 1};
-      if (!(x == 40 || x == 56 || x == 72)) {
-        drawLine(x, x, y, y+yStep, settings)
-      }
-
-      if(x != x2){
-        if(x % 4 == 0){
-        drawText(x-0.8, y+0.2, verticalRow == 10 ? 0 : verticalRow )
-        }
-     
-        let curX = x-xStep
-        let curY = y+yStep
-
-       if(verticalRow == 10){
-        squareVertInfo.push({y1:y,y2:curY,x1:curX,x2:x, verticalRow:0 })
-       } else {
-        squareVertInfo.push({y1:y,y2:curY,x1:curX,x2:x,verticalRow:verticalRow})
-       }
-        
-
-        if(verticalRow == 10){
-          verticalRow = 5
-        } else {
-          verticalRow++
-        }
-      }
-
-      
-    }
-  }
-   squareInfo = [];
-  squareInfo = mergeArrays(squareHorInfo, squareVertInfo)
-
-  drawText(x1-3*xStep, y1+2*yStep, `${zone}${sectNumber}`, 14, 'red')
+  // рисуем номера секторов
+  drawText(x1 - 3 * xStep, y1 + 2 * yStep, `${zone}${sectNumber}`, 14, 'red');
 }
 
-function drawZone(y1,y2,x1,x2, zoneNumber){
-  const xStep = 1; // degrees
-  const yStep = 1.5; // degrees, which is equivalent to 1°30'
+function drawZone(y1, y2, x1, x2, zoneNumber) {
+  const xStep = 1;
+  const yStep = 1.5;
+
   let sectorNumber = 1;
-  zoneInfo.push({y1,y2,x1,x2,zoneNumber})  
-  //веертикальные линии
-  for (let y = y1; y <= y2; y += yStep) { // Шаг в 1°30' для квадратов  
-    for (let x = x1; x > x2; x -= xStep) { // Шаг в 1 градус для квадратов
-      if (y == 0 || y == 18 || y == 36 || y == 54) { 
-       drawLine(x, x-xStep, y, y, {color:'red', lineWidth: 2})
+
+  zoneInfo.push({ y1, y2, x1, x2, zoneNumber });
+
+  // отрисовка линий
+  for (let y = y1; y <= y2; y += yStep) {
+    for (let x = x1; x >= x2; x -= xStep) {
+
+      // определяем цвета и толщину линий границ секторов и квадратов
+      let ySettings = y % 9 ? { color: 'RoyalBlue', lineWidth: 0.5 } : { color: 'darkblue', lineWidth: 1 }; 
+      let xSettings = x % 4 ? { color: 'RoyalBlue', lineWidth: 0.5 } : { color: 'darkblue', lineWidth: 1 };
+
+      // Отрисовываем горизонтальные линии в пределах зон
+      if(!(x <= x2)){
+        if (y == y1 || y == y2) {      
+          drawLine(x, x - xStep, y, y, { color: 'red', lineWidth: 2 }); // границы зон
+        } else {
+            drawLine(x, x - xStep, y, y, ySettings);  // границы секторов и квадратов
+        }
+      }
+
+      // Отрисовываем вертикальные линии в пределах зон
+      if(!(y >= y2)){      
+        if (x == x1 || x == x2) {
+          drawLine(x, x, y, y + yStep, { color: 'red', lineWidth: 2 }); // границы зон
+        } else {
+          
+          drawLine(x, x, y, y + yStep, xSettings); // границы секторов и квадратов
+        }
       } 
-      
-    }
-  }
-  //горизонтальные линии
-  for (let x = x1; x >= x2; x -= xStep) { 
-    for (let y = y1; y < y2; y += yStep) { 
-      if (x == 40 || x == 56 || x == 72) {
-        drawLine(x, x, y, y+yStep, {color:'red', lineWidth: 2})
-      }   
+
     }
   }
 
-  // Разделение зоны на сектора и их отрисовка
-  for (let i = 0; i < 4; i++) { // 4 columns
-    for (let j = 0; j < 2; j++) { // 2 rows
+  // дробим зону на секторы и вызываем функцию просчета их координат и номеров
+  for (let i = 0; i < 4; i++) { // 4 колонки
+    for (let j = 0; j < 2; j++) { // 2 ряда
       let sectorX1 = x1 - i * 4;
       let sectorY1 = y1 + j * 9;
-      drawSectorSquares(sectorY1, sectorY1 + 9, sectorX1, sectorX1 - 4, sectorNumber, zoneNumber);
-      sectorNumber++;
+      // убеждаемся, что сектор в пределах границ зоны
+      if (sectorX1 >= x2 && sectorY1 <= y2) {
+        determineSquareNum(sectorY1, sectorY1 + 9, sectorX1, sectorX1 - 4, sectorNumber, zoneNumber);
+        sectorNumber++;
+      }
     }
   }
 }
@@ -562,51 +615,12 @@ function drawText(lat, lng, text,fontSize = 10, color = 'black', latStep = 1,lng
   ctx.font = `${fontSize}px April`;
   ctx.fillText(text, centerX, centerY);
 }
+
 /* ----------------------------------------------------------------------------------------------------------- */
 
-function drawAzimuthalMap(centerLat, centerLng) {
-  const distanceStep =  10; // km
-  const azimuthStep = 10; // degrees
-
-  sectorsInfo = [];
-  zoneInfo = [];
-  squareInfo = [];
-  // Очистка холста
-  ctx.clearRect(0, 0, size, size);
-
-  const originPolar = toPolar(centerLat, centerLng, centerLat, centerLng);
-  drawMarker(originPolar, 'Бриллиант');// ... Добавьте другие метки по необходимости ...
-  
-  if (gridAz.checked) {
-    for (let distance = minDistance; distance <= maxDistance; distance += distanceStep) {
-      drawCircle(distance);
-    }
-   
-    for (let angle = 0; angle < 360; angle += azimuthStep) {
-      drawAzimuthLine(angle);
-      drawAzimuthValues(15, angle);
-    }
-  }
-  
-  drawBorder(centerLat, centerLng);
-  drawPointsAndLines();
-
-  if (gridAd.checked) {
-    drawZone(0,18, 72,56,'07');
-    drawZone(18,36, 72,56,'08');
-    drawZone(36,54, 72,56,'09');
-
-    drawZone(0,18, 56,40,'17');
-    drawZone(18,36, 56,40,'18');
-    drawZone(36,54, 56,40,'19');
-  }
-}
-
-
-
 function drawPointsAndLines() {
-  allPoints = [];
 
+  allPoints = [];
   for (const id in points) {
       const pointsArray = points[id];
       let previousPoint = null;
@@ -676,7 +690,6 @@ function fillTable() {
 
   allPoints.forEach(point => {
     let row = pointsTable.insertRow();
-    console.log(point.azimuth)
     row.insertCell().textContent = point.number;
     row.insertCell().textContent = point.azimuth;
     row.insertCell().textContent = point.distance;
@@ -701,12 +714,54 @@ function fillTable() {
     row.insertCell().textContent = point.time;
   })
 }
+
+/* ----------------------------------------------------------------------------------------------------------- */
+
+function drawAzimuthalMap(centerLat, centerLng) {
+
+  ctx.clearRect(0, 0, size, size);
+
+  sectorsInfo = [];
+  zoneInfo = [];
+  squareInfo = [];
+
+  const originPolar = toPolar(centerLat, centerLng, centerLat, centerLng);
+  drawMarker(originPolar, originName);
+  
+  if (gridAz.checked) {
+    for (let distance = minDistance; distance <= maxDistance; distance += distanceStep) {
+      drawCircle(distance);
+    }
+   
+    for (let angle = 0; angle < 360; angle += azimuthStep) {
+      drawAzimuthLine(angle);
+      drawAzimuthValues(15, angle);
+    }
+  }
+
+  if (borderSet.checked) {
+    drawBorder(centerLat, centerLng);
+  }
+  
+  drawPointsAndLines();
+
+  if (gridAd.checked) {
+    drawZone(0,18, 72,56,'07');
+    drawZone(18,36, 72,56,'08');
+    drawZone(36,54, 72,56,'09');
+
+    drawZone(0,18, 56,40,'17');
+    drawZone(18,36, 56,40,'18');
+    drawZone(36,54, 56,40,'19');
+  }
+
+}
+
 /* ----------------------------------------------------------------------------------------------------------- */
 
 // Измененный обработчик события mousemove
 canvas.addEventListener('mousemove', (e) => {
   let sector = geoToGridCoords(getInfoUnderCursor(e).coords.lat.toFixed(2),getInfoUnderCursor(e).coords.lng.toFixed(2));
-  //console.log(sector)
     document.getElementById('info').innerText = 
          `Азимут: ${getInfoUnderCursor(e).azimuth.toFixed(2)}°, 
           Дальность: ${getInfoUnderCursor(e).distance.toFixed(2)} км, 
@@ -727,7 +782,6 @@ canvas.addEventListener('mouseout', () => {
 
 /* ----------------------------------------------------------------------------------------------------------- */
 
-
 //считывает Excel файл
 document.getElementById("readFile").addEventListener('click', function readFile() {
   const input = document.getElementById('fileInput');
@@ -738,109 +792,32 @@ document.getElementById("readFile").addEventListener('click', function readFile(
     const data = new Uint8Array(e.target.result);
     const workbook = XLSX.read(data, { type: 'array' });
 
+    // выбираем лист для чтения - вводимый пользователем или первый по стандарту
     let sheetInputName = document.getElementById("sheet").value || workbook.SheetNames[0];
-
     let sheet = workbook.Sheets[sheetInputName];
+
+    //собираем данные из листа
     const dataArray = XLSX.utils.sheet_to_json(sheet, {
       header: 1,
       blankrow: false,
     });
 
-    // Filter out empty rows
+    // Отфильтровываем пустые строки
     const filteredData = dataArray.filter(row => {
       return row.some(cell => cell !== '');
     });
 
-    // Ignore the first and the second line of the input file
+    // Удаляем шапку - 2 строки
     filteredData.shift();
     filteredData.shift();
 
+    // обрабатываем и рендерим данные
     processData(filteredData);
-
-    points = {};
-    allPoints = [];
   };
   reader.readAsArrayBuffer(file);
 }, false);
 
-//render Excel data
-function processData(data) {
-  let previousTargetId = null;
-
- 
-
-  data.forEach((row) => { 
-
-    if(data[0].length === 8){
-      const targetId = String(row[0]).replace(/^0+/, ''); // Remove leading zeros
-      const azimuth = parseInt(row[1]);
-      const distance = parseInt(row[2]);
-      const affiliation = row[3];
-      const height = row[4];
-      const speed = row[5];
-      const signal = row[6]
-      const time = row[7];
-
-      let polar = polarToGeographic(distance, azimuth)
-      let grid = geoToGridCoords(polar.lat,polar.lng);
-      const sectorAndZone = `${grid.zone}${grid.sector}`;
-      const squareHor = grid.squareHor;
-      const squareVert = grid.squareVert
-      const squares = `${grid.middleSquare}${grid.smallSquare}/${grid.additionalSquare}`
-
-      if (!points[targetId]) {
-        // Replace the previousId with the targetId if it's a new target or the first occurrence
-        previousTargetId = targetId;
-        points[targetId] = [{azimuth: azimuth,distance: distance,zoneAndSector:sectorAndZone,squareHor:squareHor, squareVert:squareVert,squares:squares, affiliation: affiliation, height: height, speed: speed, signal: signal,time: time}].sort((a, b) => a.time - b.time);
-      } else {
-        // If the target already exists, append the data
-        points[targetId].push({ azimuth: azimuth, distance: distance, zoneAndSector:sectorAndZone, squareHor:squareHor, squareVert:squareVert,squares:squares, affiliation: affiliation, height: height, speed: speed,signal:signal, time: time });
-        points[targetId].sort((a, b) => a.time - b.time);
-      }
-      previousTargetId = targetId;
-    } else {
-      const targetId = String(row[0]).replace(/^0+/, ''); // Remove leading zeros
-      
-      const sectorAndZone = row[1];
-      const squareHor = row[2];
-      const squareVert = row[3];
-      const squares = row[4];
-      const affiliation = row[5];
-      const height = row[6];
-      const speed = row[7];
-      const signal = row[8]
-      const time = row[9];
-
-   
-      let sectorCoords = findSectorCoords(sectorAndZone);
-      let squareCoords = findSquareCoords(sectorCoords.sectorY1,sectorCoords.sectorY2,sectorCoords.sectorX1,sectorCoords.sectorX2,squareHor,squareVert,squares);
-      const azimuth = toPolar(squareCoords.x, squareCoords.y,originCoords.x, originCoords.y).angle; // Convert
-      const distance = toPolar(squareCoords.x, squareCoords.y,originCoords.x, originCoords.y).distance; // необходимо получать дальность и азимут по этим данным sectorAndZone squareHor squareVert squares
-
-      console.log(toPolar(squareCoords.x, squareCoords.y,originCoords.x, originCoords.y))
-
-
-      if (!points[targetId]) {
-        // Replace the previousId with the targetId if it's a new target or the first occurrence
-        previousTargetId = targetId;
-        points[targetId] = [{azimuth: azimuth,distance: distance,zoneAndSector:sectorAndZone,squareHor:squareHor, squareVert:squareVert,squares:squares, affiliation: affiliation, height: height, speed: speed, signal: signal,time: time}].sort((a, b) => a.time - b.time);
-      } else {
-        // If the target already exists, append the data
-        points[targetId].push({ azimuth: azimuth, distance: distance, zoneAndSector:sectorAndZone, squareHor:squareHor, squareVert:squareVert,squares:squares, affiliation: affiliation, height: height, speed: speed,signal:signal, time: time });
-        points[targetId].sort((a, b) => a.time - b.time);
-      }
-      previousTargetId = targetId;
-    }
-  });
-  for (const id in points) {
-    allPoints = allPoints.concat(points[id]);
-  }   
-
-  drawAzimuthalMap(originCoords.x, originCoords.y);
-}
-
-
-
+// экспортируем данные в Excel
 document.getElementById("exportTable").addEventListener('click',function exportTableToXLSX() {
   const firstSheet = XLSX.utils.table_to_sheet(document.getElementById('pointTable'));
   const secondSheet = XLSX.utils.table_to_sheet(document.getElementById('pointGridTable'));
@@ -851,109 +828,145 @@ document.getElementById("exportTable").addEventListener('click',function exportT
   XLSX.writeFile(wb, 'Тренировка.xlsx');
 }, false);
 
+// обрабатываем и рендерим Excel данные
+function processData(data) {
+  // очищаем предыдущие точки
+  points = {};
+  allPoints = [];
+
+  data.forEach(row => {
+    const targetId = String(row[0]).replace(/'/g, '').replace(/^0+/, ''); // удаляем 00 в начале номера для корректного просчета и кавычки (на случай, если номера целей в эксель указаны с ними) 
+    
+    
+    // получаем данные и записываем их в переменные, в зависимости от типа данных таблицы, которую мы импортировали
+    let [azimuth, distance, affiliation, height, speed, signal, time] = data[0].length === 8 ? 
+      [parseInt(row[1]), parseInt(row[2]), row[3], row[4], row[5], row[6], row[7]] : [undefined, undefined, row[5], row[6], row[7], row[8], row[9]]; // азимуты и дальности рассчитываются по Сетке ПВО !!!!!!!!!!! Доделать !!!!!!!!!!!!!!!!!!
+  
+
+
+    // получаем данные о квадратах сетки ПВО, в зависимости от входных данных (если таблица с азимутами - расчитываем)
+    const [sectorAndZone, squareHor, squareVert,squares] = data[0].length === 8 ? 
+    polarToGrid(distance, azimuth) : [row[1], row[2], row[3],row[4]]
+
+    let sectorCoords = findSectorCoords(sectorAndZone);
+    let squareCoord = getFinalCoords(sectorCoords.sectorY1,sectorCoords.sectorY2,sectorCoords.sectorX1,sectorCoords.sectorX2,squareHor,squareVert,squares);
+
+    if(!(data[0].length === 8)) {
+      azimuth = parseInt(toPolar(squareCoord.x, squareCoord.y,originCoords.x, originCoords.y).angle); // Convert
+      distance = parseInt(toPolar(squareCoord.x, squareCoord.y,originCoords.x, originCoords.y).distance); // необходимо получать дальность и азимут по этим данным sectorAndZone squareHor squareVert squares  
+    }
+
+      
+    const pointData = { azimuth, distance, zoneAndSector: sectorAndZone, squareHor, squareVert, squares, affiliation, height, speed, signal, time };
+
+    //Проверяем, существует ли уже массив по ключу targetId в объекте points. Если да - добавляем точку, нет - создаем пустой массив с таким ключем
+    points[targetId] = points[targetId] || []; 
+    points[targetId].push(pointData);
+  });
+
+  for (const id in points) {
+    if (points.hasOwnProperty(id)) {
+      // Сортировка массива точек по времени
+      points[id].sort((a, b) => a.time - b.time);
+      // Конкатенация отсортированного массива с allPoints
+      allPoints = allPoints.concat(points[id]);
+    }
+  }
+
+  drawAzimuthalMap(originCoords.x, originCoords.y); // ререндер холста ???? 
+}
+
 /* ----------------------------------------------------------------------------------------------------------- */
 
 let manualInputMode = 0;
-let manualInputId = null;
 
-//switch mode
+const modeText = ['Ввод Выключен', 'Ввод включен', 'Режим удаления'];
+
+// Переключение режима ввода
 document.getElementById('manual-input-button').addEventListener('click', () => {
-
-  manualInputMode++
-  document.getElementById("timeManualInput").value = '0'
-  if(manualInputMode > 2) { 
-    manualInputMode = 0  
-  }
-
-  switch (manualInputMode) {
-  case 0:
-    document.getElementById('manual-input-button').textContent = 'Ввод Выключен';
-    manualInputId = null;
-    break;
-  case 1:
-    document.getElementById('manual-input-button').textContent = 'Ввод включен';
-    break;          
-  case 2:
-    document.getElementById('manual-input-button').textContent = 'Режим удаления';
-    manualInputId = null;
-    break;
-  default:
-    document.getElementById('manual-input-button').textContent = manualInputMode;
-    manualInputId = null;
-    break;
-  }
-
+  manualInputMode = (manualInputMode + 1) % modeText.length; 
+  document.getElementById('manual-input-button').textContent = modeText[manualInputMode]; // меняем текст кнопки
+  document.getElementById("timeManualInput").value = '0'; // обнуляем время при переключении режимов
 });
 
-//put a point on click or delete it
+// обнуляем счетчик таймера, если вводится новый номер в инпуте
+document.getElementById("idManualInput").addEventListener('input' , () => {
+  document.getElementById("timeManualInput").value = '0';
+})
+
+// сохранение предыдущего клика
+let previousPoint = {azimuth:null,distance:null};
+// Обработчик события нажатия мыши
 canvas.addEventListener('mousedown', (e) => {
-  let sector = geoToGridCoords(getInfoUnderCursor(e).coords.lat.toFixed(2),getInfoUnderCursor(e).coords.lng.toFixed(2));
+  const currentPoint = getCursorInfo(e);
 
-  //turn off manual input
-  if (manualInputMode == 0) return;
-  if (manualInputMode == 1){
-    // Find the smallest unused id in range from 3800 to 3899 in the points list
-    if (manualInputId === null) {
-      for (let id = 3801; id < 3900; id++) {
-        if (points[id] === undefined || pointGrid[id] === undefined) {
-          manualInputId = id;
-          break;
-        }
-      }
+  if (manualInputMode === 0) return;
+ 
+  if (manualInputMode === 1) { 
+    if (currentPoint.azimuth !== previousPoint.azimuth || currentPoint.distance !== previousPoint.distance) {
+      const id = document.getElementById("idManualInput").value || 3801;
+      const affiliation = document.getElementById("affiliationManualInput").value;
+      const height = document.getElementById("heightManualInput").value;
+      const speed = document.getElementById("speedManualInput").value;
+      const signal = document.getElementById("signalManualInput").value;
+      let time = parseInt(document.getElementById("timeManualInput").value);
+
+      addPoint(currentPoint, id, affiliation, height, speed, signal, time++);
+      document.getElementById("timeManualInput").value = time.toString();
+      drawPointsAndLines();
+
+      previousPoint = { ...currentPoint };
     }
-
-    const id = document.getElementById("idManualInput").value || manualInputId;
-    const afflication = document.getElementById("affiliationManualInput").value;
-    const height = document.getElementById("heightManualInput").value;
-    const speed = document.getElementById("speedManualInput").value;      
-    const signal = document.getElementById("signalManualInput").value;
-
-    let time = document.getElementById("timeManualInput").value++
-
-    // Add the new point to the points list
-    let point = {
-      id: id,
-      azimuth: parseInt(getInfoUnderCursor(e).azimuth.toFixed(2)),
-      distance: parseInt(getInfoUnderCursor(e).distance.toFixed(2)),
-      zoneAndSector:`${sector.zone}${sector.sector}`, 
-      squareHor: `${sector.squareHor}`,
-      squareVert: `${sector.squareVert}`,
-      squares:`${sector.middleSquare}${sector.smallSquare}/${sector.additionalSquare}`,
-      affiliation: '',
-      height: '',
-      speed: '',
-      signal: signal,
-      time: time
-    }; 
+  } 
   
-    if (points[point.id] === undefined) {
-      point.affiliation = afflication;
-      point.height = height;
-      point.speed = speed;
-
-      points[point.id] = [point];
-    } else {
-      points[point.id].push(point);
-    }
-    
+  if (manualInputMode === 2) {
+    const idToRemove = document.getElementById("idManualInput").value || 3801;
+    removePoint(idToRemove);
   }
-
-  if (manualInputMode == 2) {
-    let idToRemove = document.getElementById("idRemove").value;
-  
-    if (idToRemove && points[idToRemove]) {
-      points[idToRemove].pop(); // Удаляем последнюю точку
-      if (points[idToRemove].length === 0) {
-        delete points[idToRemove]; // Удаляем id, если больше нет точек
-      }
-    }
-  }
-  drawAzimuthalMap(originCoords.x, originCoords.y);
 });
 
+// Функция для получения информации о координатах курсора
+const getCursorInfo = (e) => {
+  const info = getInfoUnderCursor(e);
+  return {
+    sector: geoToGridCoords(info.coords.lat.toFixed(2), info.coords.lng.toFixed(2)),
+    azimuth: parseInt(info.azimuth.toFixed(2)),
+    distance: parseInt(info.distance.toFixed(2))
+  };
+};
 
+// Функция для удаления точки
+const removePoint = (idToRemove) => {
+  if (points[idToRemove] && points[idToRemove].length > 0) {
+    points[idToRemove].pop();
+    if (points[idToRemove].length === 0) delete points[idToRemove];
+    drawAzimuthalMap(originCoords.x, originCoords.y)  // ререндер холста ?????
+  }
+};
 
+// Функция для добавления точки
+const addPoint = (cursorInfo, id, affiliation, height, speed, signal, time) => {
+  const { sector, azimuth, distance } = cursorInfo;
+  const point = {
+    id,
+    azimuth,
+    distance,
+    zoneAndSector: `${sector.zone}${sector.sector}`,
+    squareHor: sector.squareHor,
+    squareVert: sector.squareVert,
+    squares: `${sector.middleSquare}${sector.smallSquare}/${sector.additionalSquare}`,
+    affiliation,
+    height,
+    speed,
+    signal,
+    time
+  };
 
+  points[id] = points[id] || [];
+  points[id].push(point);
+};
+
+/* ----------------------------------------------------------------------------------------------------------- */
 
 
 function findSectorCoords(sectorAndZone) {
@@ -983,120 +996,125 @@ function findSectorCoords(sectorAndZone) {
   }
 }
 
-function findSquareCoords(y1,y2,x1,x2, squareHor,squareVert, squares) {
-let squarHor = [];
-let squarVert = [];
+function getFinalCoords(y1,y2,x1,x2, squareHor,squareVert, squares) {
 
   const xStep = 1; 
-  const yStep = 1.5; 
+  const yStep = 1.5;
 
-  let verticalRow = 5;
-  let horizontalRow = 4;
+  let squareCoords = []
 
-  for (let y = y1; y <= y2; y += yStep) { 
-    for (let x = x1; x > x2; x -= xStep) {      
-      if(y != y2){
-        let curX = x-xStep
-        let curY = y+yStep
-       
-        squarHor.push({y1:y,y2:curY,x1:curX,x2:x,horizontalRow})
+  // вычисляем координаты квадратов и определяем их номера по горизонтали и вертикали
+  for (let horizontalRow = 4; horizontalRow > 0; horizontalRow--) {
+    for (let verticalRow = 5; verticalRow <= 10; verticalRow++) {
+      let sectorX1 = x2 + horizontalRow * xStep;
+      let sectorY1 = y1 + (verticalRow - 5) * yStep;
 
-        if(horizontalRow == 1){
-          horizontalRow = 4
-        } else {
-          horizontalRow--
-        }
+      // рисуем в первых рядах секторов цифры-номера рядов и столбцов со смещением
+      if (sectorX1 >= x2 && sectorY1 <= y2) {
+        // сохраняем координаты о квадратах в секторе с их номерами
+        squareCoords.push({
+          y1: sectorY1,
+          y2: sectorY1 + yStep,
+          x1: sectorX1 - xStep,
+          x2: sectorX1,
+          horizontalRow,
+          verticalRow: verticalRow == 10 ? 0 : verticalRow
+        });
       }
     }
   }
 
-  for (let x = x1; x >= x2; x -= xStep) { 
-    for (let y = y1; y < y2; y += yStep) { 
-      if(x != x2){   
-        let curX = x-xStep
-        let curY = y+yStep
-
-        if(verticalRow == 10){
-          squarVert.push({y1:y,y2:curY,x1:curX,x2:x, verticalRow:0 })
-        } else {
-          squarVert.push({y1:y,y2:curY,x1:curX,x2:x,verticalRow:verticalRow})
-        }
-        
-        if(verticalRow == 10){
-          verticalRow = 5
-        } else {
-          verticalRow++
-        }
-      }
-    }
-  }
-  
-  let squareCoords =  mergeArrays(squarHor, squarVert)
   let result = {};
 
   squareCoords.forEach(el => {
     if (squareHor == el.horizontalRow && squareVert == el.verticalRow) {  
       result = el
-
+     
     }
   })
 
-   let squareFinalCoords = findFinalCoords(squares,result.x1, result.x2, result.y1, result.y2);
+  let f = findSquareCoords(result.x2, result.y1, squares);
+
+  return f
+}
+
+function findSquareCoords(x1, y1, squares) {
+  function translateCoordinates(num) {
+    const mapping = {
+      1: { x: 0, y: 0,}, 2: { x: 1, y: 0, }, 3: { x: 2, y: 0 },
+      4: { x: 2, y: 1 }, 5: { x: 2, y: 2, }, 6: { x: 1, y: 2 },
+      7: { x: 0, y: 2 }, 8: { x: 0, y: 1, }, 9: { x: 1, y: 1 }
+    };
+    return mapping[num] || null;
+  }
+ 
+
+  const squaresDivided = squares.split(/\//);
+  const squaresFiltered = squaresDivided[0].split("");
+  const midSquare = translateCoordinates(parseInt(squaresFiltered[0]));
+  const smallSquare = translateCoordinates(parseInt(squaresFiltered[1]));
+  const additionaplSquare = translateCoordinates(parseInt(squaresDivided[1]));
+  
+
+  let output = [x1, y1];
+
+  output[0] -= midSquare.y * 0.3333;
+  output[0] -= smallSquare.y * 0.1111;
+  output[0] -= (additionaplSquare.y + 0.5) * 0.037033;
+
+  output[1] += midSquare.x * 0.5;
+  output[1] += smallSquare.x * 0.1667;
+  output[1] += (additionaplSquare.x + 0.5) * 0.055566;
 
 
-  return squareFinalCoords;
+  return {x:output[0], y:output[1]};
+}
+
+function showPoints(){
+  allPoints = [];
+   points = {};
+ let coordsOfShit = [[22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104], [22.619864948040377, 1104]]
+
+let azDistShit = [[75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0], [75.96375653207369, 265.0]]
+azDistShit.forEach((coord, index) => {
+
+  //const azimuth = parseInt(toPolar(coord[0], coord[1],originCoords.x, originCoords.y).angle); // Convert
+ // const distance = parseInt(toPolar(coord[0], coord[1],originCoords.x, originCoords.y).distance);
+
+  const [sectorAndZone, squareHor, squareVert,squares] = polarToGrid(coord[1], coord[0])
+
+  const pointData = {
+    number:3801,
+    azimuth:coord[0].toFixed(2),
+    distance:coord[1].toFixed(2),
+    zoneAndSector:sectorAndZone, 
+    squareHor:squareHor,
+    squareVert:squareVert,
+    squares:squares,
+    affiliation:'',
+    height:'',
+    speed:'',
+    signal:'',
+    time:index,
+  }
+
+
+  points[3801] = points[3801] || []; 
+  points[3801].push(pointData);
+
+ })
+
+ for (const id in points) {
+  if (points.hasOwnProperty(id)) {
+    // Сортировка массива точек по времени
+    points[id].sort((a, b) => a.time - b.time);
+    // Конкатенация отсортированного массива с allPoints
+    allPoints = allPoints.concat(points[id]);
+  }
+}
+
+drawAzimuthalMap(originCoords.x, originCoords.y); // ререндер холста ???? 
 }
 
 
-
-function findFinalCoords(squares, x1, x2, y1, y2) {
-  let numbers = squares.split(/\//);
-  let numbers1 = numbers[0].split("");
-  let num0 = parseInt(numbers1[0]);
-  let num1 = parseInt(numbers1[1]);
-  let num2 = parseInt(numbers[1]);
-
-  console.log(squares, x1, x2, y1, y2);
-
-  const width = x2 - x1;
-  const height = y2 - y1;
-
-  // Разделение на 9 средних квадратов
-  const midSquareWidth = width * 0.33;
-  const midSquareHeight = height * 0.33;
-
-  // Разделение каждого среднего квадрата на 9 малых
-  const smallSquareWidth = midSquareWidth / 3;
-  const smallSquareHeight = midSquareHeight / 3;
-
-  // Разделение каждого малого квадрата на 9 ещё дополнительных
-  const tinySquareWidth = smallSquareWidth / 3;
-  const tinySquareHeight = smallSquareHeight / 3;
-
-  // Определение номера среднего квадрата
-  let midSquare = num0;
-
-  // Определение номера малого квадрата внутри среднего
-  let smallSquare = num1;
-
-  // Определение номера ещё меньшего квадрата внутри малого
-  let additionalSquare = num2;
-
-  // Вычисление координат левого верхнего угла среднего квадрата
-  const startX = x1 + (midSquare % 3) * midSquareWidth;
-  const startY = y1 + Math.floor(midSquare / 3) * midSquareHeight;
-
-  // Вычисление координат левого верхнего угла малого квадрата
-  const smallX = startX + ((smallSquare - 1) % 3) * smallSquareWidth;
-  const smallY = startY + Math.floor((smallSquare - 1) / 3) * smallSquareHeight;
-
-  // Вычисление координат левого верхнего угла дополнительного квадрата
-  const tinyX = smallX + ((additionalSquare - 1) % 3) * tinySquareWidth;
-  const tinyY = smallY + Math.floor((additionalSquare - 1) / 3) * tinySquareHeight;
-
-  // Вычисление координат центра дополнительного квадрата
-  const x = tinyX + tinySquareWidth / 2;
-  const y = tinyY + tinySquareHeight / 2;
-
-  return { x, y };
-}
+showPoints()
