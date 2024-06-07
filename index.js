@@ -50,6 +50,47 @@ let squareInfo = [];
 let squareHorInfo = [];
 let squareVertInfo = [];
 
+let numbersCode = {}
+
+
+function encodeSquare(Square){
+
+  
+
+  
+  switch (parseInt(Square)) {
+    case 1:   
+      return 2;
+    case 2:
+      break;
+    case 3:
+      break;
+    case 4:
+      break;
+    case 5:
+      break;
+    case 6:
+      break;
+    case 7:
+      break;
+    case 8:
+      break;
+    case 9:
+      break;
+    case 10: 
+      break;
+
+    default:
+      break;
+  }
+}
+function encodeZone(Zone){
+  
+}
+function encodeSector(Sector){
+  
+}
+
 let points = {};
 let allPoints = []
 
@@ -492,11 +533,11 @@ function determineSquareNum(y1, y2, x1, x2, sectNumber, zone) {
       // рисуем в первых рядах секторов цифры-номера рядов и столбцов со смещением
       if (sectorX1 >= x2 && sectorY1 <= y2) {
         if (sectorY1 != y2 && sectorY1 % 9 == 0) {
-          drawText(sectorX1 - xStep - 0.1, sectorY1 - 0.25, horizontalRow); 
+          drawText(sectorX1 - xStep - 0.1, sectorY1 - 0.25, encodeSquare(horizontalRow)); 
         }
 
         if (sectorX1 != x2 && sectorX1 % 4 == 0) {
-          drawText(sectorX1 - xStep + 0.1, sectorY1 + 0.3, verticalRow == 10 ? 0 : verticalRow);
+          drawText(sectorX1 - xStep + 0.1, sectorY1 + 0.3, verticalRow == 10 ? 0 : encodeSquare(verticalRow));
         }
         // сохраняем координаты о квадратах в секторе с их номерами
         squareInfo.push({
@@ -504,8 +545,8 @@ function determineSquareNum(y1, y2, x1, x2, sectNumber, zone) {
           y2: sectorY1 + yStep,
           x1: sectorX1 - xStep,
           x2: sectorX1,
-          horizontalRow,
-          verticalRow: verticalRow == 10 ? 0 : verticalRow
+          horizontalRow: encodeSquare(horizontalRow),
+          verticalRow: encodeSquare(verticalRow) == 10 ? 0 : encodeSquare(verticalRow)
         });
       }
     }
@@ -520,7 +561,7 @@ function drawZone(y1, y2, x1, x2, zoneNumber) {
 
   let sectorNumber = 1;
 
-  zoneInfo.push({ y1, y2, x1, x2, zoneNumber });
+  zoneInfo.push({ y1, y2, x1, x2, zoneNumber:encodeZone(zoneNumber) });
 
   // отрисовка линий
   for (let y = y1; y <= y2; y += yStep) {
@@ -559,7 +600,7 @@ function drawZone(y1, y2, x1, x2, zoneNumber) {
       let sectorY1 = y1 + j * 9;
       // убеждаемся, что сектор в пределах границ зоны
       if (sectorX1 >= x2 && sectorY1 <= y2) {
-        determineSquareNum(sectorY1, sectorY1 + 9, sectorX1, sectorX1 - 4, sectorNumber, zoneNumber);
+        determineSquareNum(sectorY1, sectorY1 + 9, sectorX1, sectorX1 - 4, encodeSector(sectorNumber), encodeZone(zoneNumber));
         sectorNumber++;
       }
     }
@@ -1070,6 +1111,7 @@ function findSquareCoords(x1, y1, squares) {
   return {x:output[0], y:output[1]};
 }
 
+// FOR TEST
 function showPoints(){
   allPoints = [];
    points = {};
@@ -1117,4 +1159,3 @@ drawAzimuthalMap(originCoords.x, originCoords.y); // ререндер холст
 }
 
 
-showPoints()

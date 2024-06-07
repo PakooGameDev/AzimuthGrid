@@ -111,7 +111,7 @@ drawZones();
 </html>
 
 https://help.gisserver.ru/ru/gridpvo/index.html -->
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -188,6 +188,51 @@ function draw() {
 // Initial draw  
 draw();
 </script>
+
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Интерфейс с ячейками</title>
+<style>
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0; /* Убираем промежутки между ячейками */
+  }
+  .grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0; /* Убираем внешние отступы */
+  }
+  .number-input {
+    width: 20px;
+    height: 20px; /* Делаем поля квадратными */
+    -webkit-appearance: none; /* Убираем стрелочки для Webkit-браузеров */
+    -moz-appearance: textfield; /* Убираем стрелочки для Firefox */
+    margin: 0; /* Убираем внутренние отступы */
+    border: 1px solid #000; /* Добавляем границу */
+    text-align: center; /* Выравниваем текст по центру */
+  }
+  /* Стиль для отображения изначальных значений */
+  .original-value {
+    margin-top: 5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-container">
+  <!-- Генерация 10 ячеек -->
+
+</div>
+
+
 
 </body>
 </html>

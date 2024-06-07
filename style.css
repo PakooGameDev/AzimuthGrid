@@ -50,6 +50,15 @@
 		display: none;
 	}
 
+	.encode {
+		display:flex;
+		justify-content: space-around;
+
+		align-items: space-around;
+
+		gap:20px;
+	}
+
 	.input{
 		display:grid;
 		grid-template-rows: 1fr 1fr;
@@ -75,6 +84,30 @@
 	}
 
 
+
+
+	  .grid-item {
+		display: inline-block;
+		
+		align-items: center;
+		margin: 0; /* Убираем внешние отступы */
+	  }
+	  .number-input {
+		width: 20px;
+		height: 20px; /* Делаем поля квадратными */
+		-webkit-appearance: none; /* Убираем стрелочки для Webkit-браузеров */
+		-moz-appearance: textfield; /* Убираем стрелочки для Firefox */
+		margin: 0; /* Убираем внутренние отступы */
+		border: 1px solid #000; /* Добавляем границу */
+		text-align: center; /* Выравниваем текст по центру */
+	  }
+	  /* Стиль для отображения изначальных значений */
+	  .original-value {
+		text-align: center;
+		padding: 5px;
+		font-size: 12px;
+		font-family: Arial, sans-serif;
+	  }
 
 	#info {
 		z-index: 10; /* Add z-index property */
