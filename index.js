@@ -51,45 +51,8 @@ let squareHorInfo = [];
 let squareVertInfo = [];
 
 let numbersCode = {}
-
-
-function encodeSquare(Square){
-
-  
-
-  
-  switch (parseInt(Square)) {
-    case 1:   
-      return 2;
-    case 2:
-      break;
-    case 3:
-      break;
-    case 4:
-      break;
-    case 5:
-      break;
-    case 6:
-      break;
-    case 7:
-      break;
-    case 8:
-      break;
-    case 9:
-      break;
-    case 10: 
-      break;
-
-    default:
-      break;
-  }
-}
-function encodeZone(Zone){
-  
-}
-function encodeSector(Sector){
-  
-}
+let sectorCode = {}
+let zoneCode = {}
 
 let points = {};
 let allPoints = []
@@ -133,9 +96,100 @@ document.getElementById('coordsSetter').addEventListener('click', () => {
 
 // рендер кэнваса после загрузки страницы
 document.addEventListener('DOMContentLoaded', (event) => {
+  
   drawAzimuthalMap(originCoords.x, originCoords.y); 
+});		
 
+// Отображаем сохраненные числа при загрузке страницы
+window.onload = function() {
+  for (let i = 1; i <= 6; i++) {
+    let savedZone = localStorage.getItem('savedZone' + (i <= 3 ? i + 6 : i + 13));
+    if (savedZone) {
+      document.getElementById('zoneValue' + i).textContent = savedZone;
+    }
+  }
+  for (let i = 1; i <= 8; i++) {
+    let savedSector = localStorage.getItem('savedSector' + i);
+    if (savedSector) {
+      document.getElementById('sectorValue' + i).textContent = savedSector;
+    }
+  }
+  for (let i = 1; i <= 10; i++) {
+    let savedNumber = localStorage.getItem('savedNumber' + i);
+    if (savedNumber) {
+      document.getElementById('originalValue' + i).textContent = savedNumber;
+    }
+  }
+};
+
+document.getElementById('encodeButton').addEventListener('click', () => {
+  for (let i = 1; i <= 6; i++) {
+    // получаем значение в текущей ячейке
+    let cellValue = document.getElementById('zoneInput' + i).value;
+    // получаем цифру над текущей ячейкой
+    let zoneValue = document.getElementById('zoneValue' + i).textContent;
+    // сохраняем значение в локальное хранилище браузера, чтобы оно отображалось после перезагрузки страницы
+    localStorage.setItem('savedZone' + i, cellValue < 10 ? `0` + cellValue : cellValue);
+    // меняем цифру над ячейкей, если ячейка валидна
+    document.getElementById('zoneValue' + i).textContent = (cellValue || zoneValue);
+    
+    if (cellValue) {
+      zoneCode[(i <= 3 ? i + 6 : i + 13)] = cellValue;
+    }
+  }
+
+  for (let i = 1; i <= 8; i++) {
+    // получаем значение в текущей ячейке
+    let cellValue = document.getElementById('sectorInput' + i).value;
+    // получаем цифру над текущей ячейкой
+    let sectorValue = document.getElementById('sectorValue' + i).textContent;
+    // сохраняем значение в локальное хранилище браузера, чтобы оно отображалось после перезагрузки страницы
+    localStorage.setItem('savedSector' + i, cellValue);
+    // меняем цифру над ячейкей, если ячейка валидна
+    document.getElementById('sectorValue' + i).textContent = (cellValue || sectorValue);
+    
+    if (cellValue) {
+      sectorCode[i] = cellValue;
+    }
+  }
+  // Большие квадраты
+  for (let i = 1; i <= 10; i++) {
+    // получаем значение в текущей ячейке
+    let cellValue = document.getElementById('numberInput' + i).value;
+    // получаем цифру над текущей ячейкой
+    let originalValue = document.getElementById('originalValue' + i).textContent;
+    // сохраняем значение в локальное хранилище браузера, чтобы оно отображалось после перезагрузки страницы
+    localStorage.setItem('savedNumber' + i, cellValue == 10 ? 0 : cellValue);
+    // меняем цифру над ячейкей, если ячейка валидна
+    document.getElementById('originalValue' + i).textContent = (cellValue == 10 ? 0 : cellValue || originalValue);
+    
+    if (cellValue) {
+      numbersCode[i] = cellValue == 10 ? 0 : cellValue;
+    }
+  }
+  
+  localStorage.setItem('zonesCode', JSON.stringify(zoneCode));
+  localStorage.setItem('numbersCode', JSON.stringify(numbersCode));
+  localStorage.setItem('sectorCode', JSON.stringify(sectorCode));
+  drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
+
+
+function encodeSquare(Square){
+  let numbersCodeSaved = JSON.parse(localStorage.getItem('numbersCode'));
+  return numbersCodeSaved[Square] || Square
+}
+
+function encodeZone(Zone){
+  let num = parseInt(Zone)
+  let numbersCodeSaved = JSON.parse(localStorage.getItem('zonesCode'));
+  return numbersCodeSaved[num] || num
+}
+
+function encodeSector(Sector){
+  let numbersCodeSaved = JSON.parse(localStorage.getItem('sectorCode'));
+  return numbersCodeSaved[Sector] || Sector
+}
 
 /* ----------------------------------------------------------------------------------------------------------- */
 
@@ -561,7 +615,7 @@ function drawZone(y1, y2, x1, x2, zoneNumber) {
 
   let sectorNumber = 1;
 
-  zoneInfo.push({ y1, y2, x1, x2, zoneNumber:encodeZone(zoneNumber) });
+  zoneInfo.push({ y1, y2, x1, x2, zoneNumber });
 
   // отрисовка линий
   for (let y = y1; y <= y2; y += yStep) {
@@ -600,7 +654,7 @@ function drawZone(y1, y2, x1, x2, zoneNumber) {
       let sectorY1 = y1 + j * 9;
       // убеждаемся, что сектор в пределах границ зоны
       if (sectorX1 >= x2 && sectorY1 <= y2) {
-        determineSquareNum(sectorY1, sectorY1 + 9, sectorX1, sectorX1 - 4, encodeSector(sectorNumber), encodeZone(zoneNumber));
+        determineSquareNum(sectorY1, sectorY1 + 9, sectorX1, sectorX1 - 4, encodeSector(sectorNumber), zoneNumber);
         sectorNumber++;
       }
     }
@@ -787,13 +841,13 @@ function drawAzimuthalMap(centerLat, centerLng) {
   drawPointsAndLines();
 
   if (gridAd.checked) {
-    drawZone(0,18, 72,56,'07');
-    drawZone(18,36, 72,56,'08');
-    drawZone(36,54, 72,56,'09');
+    drawZone(0,18, 72,56,encodeZone('07'));
+    drawZone(18,36, 72,56,encodeZone('08'));
+    drawZone(36,54, 72,56,encodeZone('09'));
 
-    drawZone(0,18, 56,40,'17');
-    drawZone(18,36, 56,40,'18');
-    drawZone(36,54, 56,40,'19');
+    drawZone(0,18, 56,40,encodeZone('17'));
+    drawZone(18,36, 56,40,encodeZone('18'));
+    drawZone(36,54, 56,40,encodeZone('19'));
   }
 
 }

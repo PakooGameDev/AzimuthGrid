@@ -38,40 +38,43 @@
 				<label for="borderGen">Отобразить границу</label>
 			  </form>
 		</div>
-
+		<div id="zoneEncode">
+			<script>
+				for (let i = 1; i <= 6; i++) {
+				  document.write(`
+					<div class="grid-item">
+				      <div id="zoneValue${i}" class="original-value">${i <= 3 ? `0` + (i + 6) : i + 13}</div>
+					  <input type="number" id="zoneInput${i}" class="number-input" maxlength="1" min="1" max="9"> 
+					</div>
+				  `);
+				}
+			  </script>	
+		</div>
+		<div id="encodeSector">
+			<script>
+				for (let i = 1; i <= 8; i++) {
+				  document.write(`
+					<div class="grid-item">
+				      <div id="sectorValue${i}" class="original-value">${i}</div>
+					  <input type="number" id="sectorInput${i}" class="number-input" maxlength="1" min="1" max="9"> 
+					</div>
+				  `);
+				}
+			  </script>
+		</div>
 		<div id="encode">		
 			<script>
 				for (let i = 1; i <= 10; i++) {
 				  document.write(`
 					<div class="grid-item">
-				      <div id="originalValue${i == 10 ? 0 : i}" class="original-value">${i == 10 ? 0 : i}</div>
-					  <input type="number" id="numberInput${i}" class="number-input" maxlength="2" min="1" max="10" placeholder="${i == 10 ? 0 : i}" onchange="saveAndReplaceValue(${i == 10 ? 0 : i}, this.value)"> 
+				      <div id="originalValue${i}" class="original-value">${i == 10 ? 0 : i}</div>
+					  <input type="number" id="numberInput${i}" class="number-input" maxlength="2" min="1" max="10"> 
 					</div>
 				  `);
 				}
 			  </script>
-			<button id="encode">Закодировать</button>
+			<button id="encodeButton">Закодировать</button>
 		</div>
-
-		<script>
-			// Функция для сохранения и замены значения
-			function saveAndReplaceValue(index, newValue) {
-			  var originalValue = document.getElementById('originalValue' + index).textContent.split(': ')[1];
-			  localStorage.setItem('savedNumber' + index, newValue);
-			  document.getElementById('originalValue' + index).textContent = (newValue || originalValue);
-			}
-			
-			// Отображаем сохраненные числа при загрузке страницы
-			window.onload = function() {
-			  for (let i = 1; i <= 10; i++) {
-				var savedNumber = localStorage.getItem('savedNumber' + i);
-				if (savedNumber) {
-				  document.getElementById('originalValue' + i).textContent = savedNumber;
-				  document.getElementById('numberInput' + i).value = savedNumber;
-				}
-			  }
-			};
-			</script>
 
 		<div id="originSet">		
 			<input id="latSet" type="number" placeholder="Широта (десятичные)" >
