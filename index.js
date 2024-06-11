@@ -760,7 +760,7 @@ function drawPointsAndLines() {
           drawCross(ctx, coords);
         } else {
           // Рисуем точку, если сигнал не соответствует специальным условиям
-          ctx.arc(coords.x, coords.y, 2, 0, 2 * Math.PI);
+          ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
           ctx.fillStyle = 'black';
           ctx.fill();
         }
@@ -863,30 +863,41 @@ function drawCross(ctx, point) {
 
 }
 
+function getRandomNumber(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
 function drawFootnote(ctx, point, coords, id) {
-  // Calculate the line for the footnote
+
+  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -15 : getRandomNumber(15, 35)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(5, 45) : -getRandomNumber(5, 45))}
+
+
+  ctx.beginPath();
+  ctx.moveTo(coords.x, coords.y);
+  ctx.lineTo(finalCoords.x, finalCoords.y);
+  ctx.strokeStyle = 'black';
+  ctx.stroke();
+
   const lineLength = point.azimuth >= 180 ? -60 : 60; // Adjust length as needed
 
   const lineEnd = {
-    x: coords.x + lineLength,
-    y: coords.y
+    x: finalCoords.x + lineLength,
+    y: finalCoords.y
   };
 
   // Draw the long line
   ctx.beginPath();
-  ctx.moveTo(coords.x, coords.y);
+  ctx.moveTo(finalCoords.x, finalCoords.y);
   ctx.lineTo(lineEnd.x, lineEnd.y);
   ctx.strokeStyle = 'black';
-  ctx.stroke();
-
+ 
   // Draw the small dividing line
   const dividerLength = 10; // Adjust length as needed
   const dividerCenter = {
-    x: (coords.x + lineEnd.x) / 2,
-    y: (coords.y + lineEnd.y) / 2,
+    x: (finalCoords.x + lineEnd.x) / 2,
+    y: (finalCoords.y + lineEnd.y) / 2,
   };
 
-  ctx.beginPath();
   ctx.moveTo(
     dividerCenter.x,
     dividerCenter.y + dividerLength
@@ -907,13 +918,13 @@ function drawFootnote(ctx, point, coords, id) {
   ctx.stroke();
 
   // Draw the text for the point id
-  ctx.font = '12px Arial';
+  ctx.font = '10px Arial';
   ctx.fillText(id, lineEnd.x + (point.azimuth >= 180 ? -20 : 20), lineEnd.y);
 
   // Draw the data above and below the dividing line
-  ctx.fillText(point.affiliation, dividerCenter.x - 15, dividerCenter.y - 10);  // Above the line
-  ctx.fillText(point.height, dividerCenter.x + 15, dividerCenter.y - 10);// Further below the line
-  ctx.fillText(point.speed, dividerCenter.x - (point.azimuth >= 180 ? -15 : 15) , dividerCenter.y + 10); // Below the line
+  ctx.fillText(point.affiliation, dividerCenter.x - 15, dividerCenter.y - 7);  // Above the line
+  ctx.fillText(point.height, dividerCenter.x + 15, dividerCenter.y - 7);// Further below the line
+  ctx.fillText(point.speed, dividerCenter.x - (point.azimuth >= 180 ? -15 : 15) , dividerCenter.y + 7); // Below the line
 }
 
 function fillTable() {
