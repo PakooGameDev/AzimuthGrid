@@ -177,7 +177,7 @@ document.getElementById('encodeButton').addEventListener('click', () => {
   localStorage.setItem('zonesCode', JSON.stringify(zoneCode));
   localStorage.setItem('numbersCode', JSON.stringify(numbersCode));
   localStorage.setItem('sectorCode', JSON.stringify(sectorCode));
-
+  processData(filteredData);
   drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
 
@@ -731,56 +731,189 @@ function drawText(lat, lng, text,fontSize = 10, color = 'black', latStep = 1,lng
 }
 
 /* ----------------------------------------------------------------------------------------------------------- */
-
 function drawPointsAndLines() {
   allPoints = [];
   for (const id in points) {
-      const pointsArray = points[id];
-      let previousPoint = null;
-  
-      pointsArray.forEach((point, index) => {
-          if (point) {
-              const pixelDistance = point.distance / maxDistance * scaleCoef;
-              const radian = (point.azimuth - 90) * Math.PI / 180;
-              const coords = {
-                  x: center.x + pixelDistance * Math.cos(radian),
-                  y: center.y + pixelDistance * Math.sin(radian)
-              };
-              // Рисуем точку
-              ctx.beginPath();
-              ctx.arc(coords.x, coords.y, 2, 0, 2 * Math.PI);
-              ctx.fillStyle = 'black';
-              ctx.fill();
+    const pointsArray = points[id];
+    let previousPoint = null;
 
-              // Рисуем линию к предыдущей точке
-              if (previousPoint) {
-                  ctx.beginPath();
-                  ctx.moveTo(previousPoint.x, previousPoint.y);
-                  ctx.lineTo(coords.x, coords.y);
-                  ctx.strokeStyle = 'black';
-                  ctx.stroke();
-              }
-              previousPoint = coords;
-          }
-          allPoints.push({
-            number:`'${index === 0 ? id.padStart(6, '00') : id}'`,
-            azimuth:point.azimuth,
-            distance:point.distance,
-            sectorAndZone:point.sectorAndZone, 
-            squareHor:point.squareHor,
-            squareVert:point.squareVert,
-            squares:point.squares,
-            affiliation:point.affiliation || '',
-            height:point.height || '',
-            speed:point.speed || '',
-            signal:point.signal || '',
-            time:point.time,
-          })      
-      });
-      // Сброс previousPoint после завершения отрисовки сегмента
-      previousPoint = null;
+    pointsArray.forEach((point, index) => {
+      if (point) {
+        const pixelDistance = point.distance / maxDistance * scaleCoef;
+        const radian = (point.azimuth - 90) * Math.PI / 180;
+        const coords = {
+          x: center.x + pixelDistance * Math.cos(radian),
+          y: center.y + pixelDistance * Math.sin(radian)
+        };
+       
+        // Рисуем разные формы в зависимости от сигнала
+        ctx.beginPath();
+        ctx.lineWidth = 1; // Толщина линии
+        if (point.signal == 190) {
+          // Рисуем перпендикулярную линию
+          drawPerpendicularLine(ctx, previousPoint, coords);
+        } else if (point.signal == 192) {
+          // Рисуем двойную линию
+          drawDoubleLine(ctx, previousPoint, coords);
+        } else if (point.signal == 332) {
+          // Рисуем крестик
+          drawCross(ctx, coords);
+        } else {
+          // Рисуем точку, если сигнал не соответствует специальным условиям
+          ctx.arc(coords.x, coords.y, 2, 0, 2 * Math.PI);
+          ctx.fillStyle = 'black';
+          ctx.fill();
+        }
+        if (index === 0) {
+          drawFootnote(ctx, point, coords, id);
+        }
+        // Рисуем линию к предыдущей точке
+        if (previousPoint) {
+          ctx.moveTo(previousPoint.x, previousPoint.y);
+          ctx.lineTo(coords.x, coords.y);
+          ctx.strokeStyle = 'black';
+          ctx.stroke();
+        }
+        previousPoint = coords;
+      }
+      allPoints.push({
+        number:`'${index === 0 ? id.padStart(6, '00') : id}'`,
+        azimuth:point.azimuth,
+        distance:point.distance,
+        sectorAndZone:point.sectorAndZone, 
+        squareHor:point.squareHor,
+        squareVert:point.squareVert,
+        squares:point.squares,
+        affiliation:point.affiliation || '',
+        height:point.height || '',
+        speed:point.speed || '',
+        signal:point.signal || '',
+        time:point.time,
+      }) 
+    });
+    // Сброс previousPoint после завершения отрисовки сегмента
+    previousPoint = null;
   }
-  fillTable()
+  fillTable();
+}
+
+function drawPerpendicularLine(ctx, previousPoint, currentPoint) {
+  if (previousPoint) {
+    const lineLength = 10; // Максимальная длина линии
+    
+
+    // Вычисляем направление перпендикуляра
+    const directionX = previousPoint.y - currentPoint.y;
+    const directionY = currentPoint.x - previousPoint.x;
+
+    // Нормализуем направление
+    const length = Math.sqrt(directionX * directionX + directionY * directionY);
+    const unitX = directionX / length;
+    const unitY = directionY / length;
+
+    // Рисуем перпендикулярную линию от текущей точки
+
+    ctx.moveTo(currentPoint.x + unitX * lineLength / 2, currentPoint.y + unitY * lineLength / 2);
+    ctx.lineTo(currentPoint.x - unitX * lineLength / 2, currentPoint.y - unitY * lineLength / 2);
+    ctx.strokeStyle = 'black';
+
+  }
+}
+
+function drawDoubleLine(ctx, previousPoint, currentPoint) {
+  if (previousPoint) {
+    const lineLength = 10; // Максимальная длина линии
+    const offset = 3; // Расстояние между линиями
+
+
+    // Вычисляем направление перпендикуляра
+    const directionX = previousPoint.y - currentPoint.y;
+    const directionY = currentPoint.x - previousPoint.x;
+
+    // Нормализуем направление
+    const length = Math.sqrt(directionX * directionX + directionY * directionY);
+    const unitX = directionX / length;
+    const unitY = directionY / length;
+
+
+    ctx.moveTo(currentPoint.x + unitX * lineLength / 2, currentPoint.y + unitY * lineLength / 2);
+    ctx.lineTo(currentPoint.x - unitX * lineLength / 2, currentPoint.y - unitY * lineLength / 2);
+    ctx.strokeStyle = 'black';
+
+
+    // Рассчитываем позицию для второй линии
+    const secondLineX = currentPoint.x + unitY * offset;
+    const secondLineY = currentPoint.y - unitX * offset;
+
+    // Рисуем вторую перпендикулярную линию, смещенную от первой
+
+    ctx.moveTo(secondLineX + unitX * lineLength / 2, secondLineY + unitY * lineLength / 2);
+    ctx.lineTo(secondLineX - unitX * lineLength / 2, secondLineY - unitY * lineLength / 2);
+
+  }
+}
+
+function drawCross(ctx, point) {
+  const crossLength = 7; // Устанавливаем длину линий крестика
+  ctx.moveTo(point.x - crossLength / 2, point.y - crossLength / 2);
+  ctx.lineTo(point.x + crossLength / 2, point.y + crossLength / 2);
+  ctx.moveTo(point.x + crossLength / 2, point.y - crossLength / 2);
+  ctx.lineTo(point.x - crossLength / 2, point.y + crossLength / 2);
+  ctx.strokeStyle = 'black';
+
+}
+
+function drawFootnote(ctx, point, coords, id) {
+  // Calculate the line for the footnote
+  const lineLength = point.azimuth >= 180 ? -60 : 60; // Adjust length as needed
+
+  const lineEnd = {
+    x: coords.x + lineLength,
+    y: coords.y
+  };
+
+  // Draw the long line
+  ctx.beginPath();
+  ctx.moveTo(coords.x, coords.y);
+  ctx.lineTo(lineEnd.x, lineEnd.y);
+  ctx.strokeStyle = 'black';
+  ctx.stroke();
+
+  // Draw the small dividing line
+  const dividerLength = 10; // Adjust length as needed
+  const dividerCenter = {
+    x: (coords.x + lineEnd.x) / 2,
+    y: (coords.y + lineEnd.y) / 2,
+  };
+
+  ctx.beginPath();
+  ctx.moveTo(
+    dividerCenter.x,
+    dividerCenter.y + dividerLength
+  );
+  ctx.lineTo(
+    dividerCenter.x,
+    dividerCenter.y - dividerLength
+  );
+  ctx.stroke();
+
+  // Рисуем дугу
+  const arcRadius = 10; // Радиус дуги, настройте по необходимости
+  const startAngle = point.azimuth >= 180 ? -0.5 * Math.PI : 0.5 * Math.PI; // Начальный угол
+  const endAngle = point.azimuth >= 180 ? 0.5 * Math.PI : -0.5 * Math.PI; // Конечный угол
+
+  ctx.beginPath();
+  ctx.arc(lineEnd.x+(point.azimuth >= 180 ? -arcRadius : arcRadius), lineEnd.y, arcRadius, startAngle, endAngle);
+  ctx.stroke();
+
+  // Draw the text for the point id
+  ctx.font = '12px Arial';
+  ctx.fillText(id, lineEnd.x + (point.azimuth >= 180 ? -20 : 20), lineEnd.y);
+
+  // Draw the data above and below the dividing line
+  ctx.fillText(point.affiliation, dividerCenter.x - 15, dividerCenter.y - 10);  // Above the line
+  ctx.fillText(point.height, dividerCenter.x + 15, dividerCenter.y - 10);// Further below the line
+  ctx.fillText(point.speed, dividerCenter.x - (point.azimuth >= 180 ? -15 : 15) , dividerCenter.y + 10); // Below the line
 }
 
 function fillTable() {
@@ -865,8 +998,6 @@ function drawAzimuthalMap(centerLat, centerLng) {
     drawZone(36,54, 56,40,encodeZone('19'));
   }
 
-  processData(filteredData);
-  
   drawPointsAndLines();
 
 }
@@ -927,6 +1058,7 @@ document.getElementById("readFile").addEventListener('click', function readFile(
     filteredData.shift();
     filteredData.shift();
 
+    processData(filteredData);
     // обрабатываем и рендерим данные
     drawAzimuthalMap(originCoords.x, originCoords.y); // ререндер холста ???? 
   };
@@ -969,6 +1101,7 @@ function processData(data) {
     
     if(!(data[0].length === 8)) {
       let sectorCoords = findSectorCoords(sectorAndZone);
+
       let squareCoord = getFinalCoords(sectorCoords.sectorY1,sectorCoords.sectorY2,sectorCoords.sectorX1,sectorCoords.sectorX2,squareHor,squareVert,squares);
   
       azimuth = parseInt(toPolar(squareCoord.x, squareCoord.y,originCoords.x, originCoords.y).angle); // Convert
@@ -1029,7 +1162,7 @@ canvas.addEventListener('mousedown', (e) => {
 
       addPoint(currentPoint, id, affiliation, height, speed, signal, time++);
       document.getElementById("timeManualInput").value = time.toString();
-      drawPointsAndLines();
+       drawAzimuthalMap(originCoords.x, originCoords.y)
 
       previousPoint = { ...currentPoint };
     }
@@ -1056,6 +1189,7 @@ const removePoint = (idToRemove) => {
   if (points[idToRemove] && points[idToRemove].length > 0) {
     points[idToRemove].pop();
     if (points[idToRemove].length === 0) delete points[idToRemove];
+
     drawAzimuthalMap(originCoords.x, originCoords.y)  // ререндер холста ?????
   }
 };
@@ -1090,25 +1224,45 @@ function findSectorCoords(sectorAndZone) {
   let lastDigit = number % 10; // Получаем последнюю цифру
   let restOfTheNumber = Math.floor(number / 10); // Получаем оставшуюся часть числа
 
-  if (restOfTheNumber == '18') {
-    let x1 = 18;
-    let y1 = 56;
-    let sectorNumber = 1;
+  let zones = [
+    {y:0, x:72, zoneNumber:'07'},
+    {y:18, x:72, zoneNumber:'08'},
+    {y:36, x:72, zoneNumber:'09'},
+    {y:0, x:56, zoneNumber:'17'},
+    {y:18, x:56, zoneNumber:'18'},
+    {y:36, x:56, zoneNumber:'19'},
+  ]
 
-    for (let i = 0; i < 4; i++) { // 4 columns
-      for (let j = 0; j < 2; j++) { // 2 rows
-        let sectorX1 = y1 - i * 4;
-        let sectorX2 = sectorX1 - 4;
-        let sectorY1 = x1 + j * 9;
-        let sectorY2 = sectorY1 + 9;      
-        if (sectorNumber == lastDigit) {
-          return { sectorY1, sectorY2, sectorX1, sectorX2 };
+  let sectorX1;
+  let sectorX2;
+  let sectorY1;
+  let sectorY2; 
+
+  zones.forEach(el => {
+    if(parseInt(el.zoneNumber) == restOfTheNumber){
+
+      let x = el.y //18  36
+      let y = el.x //56  40
+      
+      let sectorNumber = 1;
+
+      for (let i = 0; i < 4; i++) { // 4 columns
+        for (let j = 0; j < 2; j++) { // 2 rows
+          sectorX1 = y - i * 4;
+          sectorX2 = sectorX1 - 4;
+          sectorY1 = x + j * 9;
+          sectorY2 = sectorY1 + 9;      
+          if (sectorNumber == lastDigit) {
+            return { sectorY1, sectorY2, sectorX1, sectorX2 };
+          }
+          sectorNumber++;
         }
-        sectorNumber++;
       }
-    }
-  }
+    }   
+  })
+  return { sectorY1, sectorY2, sectorX1, sectorX2 };
 }
+
 
 function getFinalCoords(y1,y2,x1,x2, squareHor,squareVert, squares) {
 

@@ -304,6 +304,13 @@ input:focus, button:focus, textarea:focus, select:focus {
 	justify-content: space-between;
   }
 
+
+  .import{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+  }
+
 /* Стили для области выбора файла */
 .input-file-trigger {
 
