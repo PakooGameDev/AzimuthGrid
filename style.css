@@ -1,12 +1,31 @@
+:root {
+	--background-color: #121212;
+	--text-color: #e0e0e0;
+	--accent-color: #bb86fc;
+	--border-color: #292929;
+  }
+
+* {
+	margin: 0;
+	padding: 0;
+	
+}
 
 	body {
+		font-family: 'Roboto', sans-serif;
 		display: flex; /* Используйте flex для вертикального стека */
-		
+		background-color: var(--background-color);
+		color: var(--text-color);
 		align-items: center; /* Центрирование элементов по горизонтали */
 		justify-content: space-around; /* Центрирование элементов по вертикали */
 		gap: 20px; /* Отступ между элементами */
-		margin: 0; /* Убрать стандартные отступы */
-		padding: 0;
+
+	}
+
+	canvas {
+		background-color: #e0e0e0;
+		border: 5px solid var(--border-color);
+
 	}
 
 	#pointTable, #pointGridTable {
@@ -63,24 +82,36 @@
 		display:grid;
 		grid-template-rows: 1fr 1fr;
 		grid-template-columns: 1fr 1fr ;
+
+	}
+
+	.input-setter{
+		display:grid;
+		grid-template-columns: 1fr 1fr ;
+
 	}
 
 	.settings {
-		display:flex;
+		display: flex;
 		justify-content: space-around;
-
 		align-items: space-around;
 		flex-direction: column;
-		gap:20px;
-	}
+		gap: 15px;
+		background-color: var(--background-color);
+		color: var(--text-color);
+		border: 1px solid var(--border-color);
+		padding: 10px;
+		border-radius: 5px;
+		transition: background-color 0.3s ease, color 0.3s ease;
+	  }
 
 	.table-container {		
 			
 		height: auto; /* Высота скроллбокса */
-		max-height: 220px;	
+		max-height: 130px;	
 		overflow-y: auto;
 		min-width: 600px;
-		max-width: 600px;
+		max-width: auto;
 	}
 
 
@@ -92,19 +123,11 @@
 		align-items: center;
 		margin: 0; /* Убираем внешние отступы */
 	  }
-	  .number-input {
-		width: 20px;
-		height: 20px; /* Делаем поля квадратными */
-		-webkit-appearance: none; /* Убираем стрелочки для Webkit-браузеров */
-		-moz-appearance: textfield; /* Убираем стрелочки для Firefox */
-		margin: 0; /* Убираем внутренние отступы */
-		border: 1px solid #000; /* Добавляем границу */
-		text-align: center; /* Выравниваем текст по центру */
-	  }
+
 	  /* Стиль для отображения изначальных значений */
 	  .original-value {
 		text-align: center;
-		padding: 5px;
+
 		font-size: 12px;
 		font-family: Arial, sans-serif;
 	  }
@@ -127,4 +150,201 @@
 		cursor: pointer;
 	}
 
+	/* Apply dark theme styles to inputs and buttons */
+input[type="number"], input[type="text"], input[type="file"], button {
+  background-color: var(--border-color); /* Dark background */
+  color: var(--text-color); /* Light text */
+  border: none; /* Remove default border */
+  padding: 8px 8px; /* Larger size */
+  border-radius: 5px; /* Slightly rounded corners */
+  font-size: 12px; /* Larger font size */
+  transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition for hover effects */
+}
+
+
+
+/* Style for checkboxes */
+input[type="checkbox"] {
+  -webkit-appearance: none; /* Remove default appearance for Webkit browsers */
+  -moz-appearance: none; /* Remove default appearance for Firefox */
+  width: 20px; /* Width of custom checkbox */
+  height: 20px; /* Height of custom checkbox */
+  background-color: var(--border-color); /* Dark background */
+  border-radius: 5px; /* Slightly rounded corners */
+  position: relative; /* Position relative for custom checkmark */
+}
+
+/* Custom checkmark style */
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 8px;
+  height: 14px;
+  border: solid var(--text-color);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+/* Hover effect for buttons */
+button:hover {
+  background-color: var(--accent-color); /* Change background color on hover */
+  color: var(--background-color); /* Change text color on hover */
+}
+
+/* Ensure that the file input button matches the theme */
+input[type="file"]::-webkit-file-upload-button {
+  background-color: var(--border-color);
+  color: var(--text-color);
+  padding: 6px 6px;
+  border-radius: 5px;
+  border: none;
+  font-size: 12px;
+  cursor: pointer; /* Change cursor to pointer */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Apply the same hover effect to file input button */
+input[type="file"]::-webkit-file-upload-button:hover {
+  background-color: var(--accent-color);
+  color: var(--background-color);
+}
+
+/* Убираем стрелочки у инпутов */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Для Firefox */
+}
+
+
+
+/* Адаптируем .settings под размер экрана */
+.settings {
+  max-width: 100%; /* Ширина не больше размера экрана */
+  box-sizing: border-box; /* Включаем padding в общую ширину */
+  padding: 10px; /* Добавляем внутренние отступы */
+}
+
+/* Стилизуем таблицы в тёмной теме */
+#pointTable, #pointGridTable {
+  background-color: var(--background-color); /* Тёмный фон */
+  color: var(--text-color); /* Светлый текст */
+  border-collapse: collapse; /* Убираем двойные границы */
+}
+
+#pointTable th, #pointTable td,
+#pointGridTable th, #pointGridTable td {
+  border: 1px solid var(--border-color); /* Границы ячеек */
+  padding: 6px; /* Отступы внутри ячеек */
+}
+
+#pointTable th, #pointGridTable th {
+  background-color: var(--border-color);
+  border: 1px solid var(--background-color); /* Фон заголовков */
+  color: var(--text-color); /* Цвет текста заголовков */
+}
+
+/* Добавляем плавность к таблицам */
+#pointTable, #pointGridTable {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+/* Убираем выделение при клике на инпуты */
+input:focus, button:focus, textarea:focus, select:focus {
+	outline: none; /* Убирает стандартное выделение */
+  }
+
+	/* Скрываем стандартный инпут и стилизуем label как кнопку */
+.input-file-container {
+	position: relative;
+	display: inline-block;
+  }
+
+  
+  
+  .input-file {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+  }
+
+  .encodeLabel{
+	width: 100px;
+  }
+
+  .encodeContainer{
+	display: flex;
+	flex-direction: column;
+  }
+
+  #encodeButton {
+	margin-top: 20px;
+	width: 200px;
+	align-self: center;
+  }
+
+  #changeTable {
+
+	width: 200px;
+	align-self: center;
+  }
+  
+  #encodeBlock{
+	display: flex;
+	align-items: center;
 	
+	justify-content: space-between;
+  }
+
+/* Стили для области выбора файла */
+.input-file-trigger {
+
+	padding: 6px 6px;
+	background-color: var(--border-color);
+	color: var(--text-color);
+	font-size: 13px;
+	border-radius: 5px;
+	cursor: pointer;
+	transition: background-color 0.3s;
+  }
+  
+  /* Изменение фона при наведении */
+  .input-file-trigger:hover {
+	background-color: var(--accent-color);
+	color: var(--background-color);
+  }
+  
+
+  /* Стиль для отображения названия выбранного файла */
+  .input-file-name {
+	color: var(--accent-color);
+  }
+  
+button,
+input[type="number"],
+input[type="text"],
+input[type="file"],
+.input-file-trigger {
+  margin: 5px; /* Adjust the value as needed for desired spacing */
+}
+
+.number-input {
+	width: 13px;
+	height: 13px; /* Делаем поля квадратными */
+	-webkit-appearance: none; /* Убираем стрелочки для Webkit-браузеров */
+	-moz-appearance: textfield; /* Убираем стрелочки для Firefox */
+	padding: 0;
+	margin: 0; /* Убираем внутренние отступы */
+	border: 1px solid #000; /* Добавляем границу */
+	
+	text-align: center; /* Выравниваем текст по центру */
+  }
+

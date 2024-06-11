@@ -22,11 +22,14 @@
 	<canvas id="azimuthalGrid"></canvas>
 	<div class="settings">  
 		
-
+		<div class="input-setter">
+			<input id="gridDistance" type="number" placeholder="Максимальная дальность сетки" >
+			<button id="setter">Установить настройки</button>
+		</div>
 
 		<div id="checkers">
 			<form>
-				<input id="gridAD" type="checkbox">
+				<input id="gridAD" type="checkbox" checked>
 				<label for="gridAD">Отобразить сетку ПВО</label>
 			  </form>
 			  <form>
@@ -38,58 +41,139 @@
 				<label for="borderGen">Отобразить границу</label>
 			  </form>
 		</div>
-		<div id="zoneEncode">
-			<script>
-				for (let i = 1; i <= 6; i++) {
-				  document.write(`
-					<div class="grid-item">
-				      <div id="zoneValue${i}" class="original-value">${i <= 3 ? `0` + (i + 6) : i + 13}</div>
-					  <input type="number" id="zoneInput${i}" class="number-input" maxlength="1" min="1" max="9"> 
+
+		<div id="tables">
+			<div class="import">
+	
+				<button id="exportTable">Export XLSX</button>
+				<button id="readFile">Import XLSX</button>
+				<input id="sheet" type="text" placeholder="Название листа">
+				<div class="input-file-container">
+					<input type="file" id="fileInput" class="input-file" />
+					<label for="fileInput" class="input-file-trigger">Выберите файл</label>
+					<span id="file-name" class="input-file-name"></span>
+				  </div>
+				
+			  </div>
+	
+			<div id="tableButtons">
+				
+				<button id="changeTable">Переключить таблицу</button>
+			</div>
+	
+			<div id="tableAz" class="table">		  
+				<div class="table-container">
+					<div class="table-inner">
+						<table id="pointTable" border="1" baffiliation="1" cellpadding="4" cellspacing="0">
+							<thead>
+							  <tr>
+								<th rowspan="2">Номер</th>
+								<th rowspan="2">Азимут</th>
+								<th rowspan="2">Дальность</th>
+								<th colspan="3">Характеристики</th>
+								<th rowspan="2">Сигнал</th>
+								<th rowspan="2">Время</th>
+							  </tr>
+							  <tr>
+								<th>Принадлежность</th><th>Высота</th><th>Скорость</th>
+							  </tr>
+							</thead>
+							<tbody>
+							</tbody>
+						  </table>
 					</div>
-				  `);
-				}
-			  </script>	
-		</div>
-		<div id="encodeSector">
-			<script>
-				for (let i = 1; i <= 8; i++) {
-				  document.write(`
-					<div class="grid-item">
-				      <div id="sectorValue${i}" class="original-value">${i}</div>
-					  <input type="number" id="sectorInput${i}" class="number-input" maxlength="1" min="1" max="9"> 
+				  </div>
+			  </div>
+			  <div id="tableAd" class="table">
+				  <div class="table-container">
+					  <div class="table-inner">
+						  <table id="pointGridTable" border="1" baffiliation="1" cellpadding="3" cellspacing="0">
+							  <thead>
+								<tr>
+								  <th rowspan="2">Номер</th>
+								  <th rowspan="2">Зона,сектор</th>
+								  <th colspan="2">Большой квадрат</th>
+								  <th rowspan="2">Квадраты</th>
+								  <th colspan="3">Характеристики</th>
+								  <th rowspan="2">Сигнал</th>
+								  <th rowspan="2">Время</th>
+								</tr>
+								<tr>
+								  <th>1</th>
+								  <th>2</th>
+								  <th>Принадлежность</th><th>Высота</th><th>Скорость</th>
+								</tr>
+							  </thead>
+							  <tbody>
+							  </tbody>
+							</table>
+					  </div>
 					</div>
-				  `);
-				}
-			  </script>
-		</div>
-		<div id="encode">		
-			<script>
-				for (let i = 1; i <= 10; i++) {
-				  document.write(`
-					<div class="grid-item">
-				      <div id="originalValue${i}" class="original-value">${i == 10 ? 0 : i}</div>
-					  <input type="number" id="numberInput${i}" class="number-input" maxlength="2" min="1" max="10"> 
-					</div>
-				  `);
-				}
-			  </script>
+			  </div>
+		  </div>
+		  <div class="encodeContainer">
+			<div id="encodeBlock">
+				<div class="encodeLabel">Зоны:</div>
+				<div>
+					<script>
+						for (let i = 1; i <= 6; i++) {
+						  document.write(`
+							<div class="grid-item">
+							  <div id="zoneValue${i}" class="original-value">${i <= 3 ? `0` + (i + 6) : i + 13}</div>
+							  <input type="number" id="zoneInput${i}" class="number-input" maxlength="1" min="1" max="9"> 
+							</div>
+						  `);
+						}
+					  </script>	
+				</div>
+
+			</div>
+			<div id="encodeBlock">
+				<div class="encodeLabel">Сектора:</div>
+				<div>
+					<script>
+						for (let i = 1; i <= 8; i++) {
+						  document.write(`
+							<div class="grid-item">
+							  <div id="sectorValue${i}" class="original-value">${i}</div>
+							  <input type="number" id="sectorInput${i}" class="number-input" maxlength="1" min="1" max="9"> 
+							</div>
+						  `);
+						}
+					  </script>
+				</div>
+			</div>
+			<div id="encodeBlock">		
+				<div class="encodeLabel">Большие квадраты:</div>
+				<div>
+					<script>
+						for (let i = 1; i <= 10; i++) {
+						  document.write(`
+							<div class="grid-item">
+							  <div id="originalValue${i}" class="original-value">${i == 10 ? 0 : i}</div>
+							  <input type="number" id="numberInput${i}" class="number-input" maxlength="2" min="1" max="10"> 
+							</div>
+						  `);
+						}
+					  </script>
+				</div>			
+			</div>
 			<button id="encodeButton">Закодировать</button>
-		</div>
+		  </div>
+		
 
 		<div id="originSet">		
-			<input id="latSet" type="number" placeholder="Широта (десятичные)" >
-			<input id="lngSet" type="number" placeholder="Долгота (десятичные)" >
 			<input id="locationName" type="text" placeholder="Название локации">
 			<button id="coordsSetter">Установить центр</button>
+			<input id="latSet" type="number" placeholder="Широта (десятичные)" >
+			<input id="lngSet" type="number" placeholder="Долгота (десятичные)" >
+
 		</div>
 
-	  <div class="input">
-		<input id="gridDistance" type="number" placeholder="Максимальная дальность сетки" >
-		<button id="setter">Установить настройки</button>
-	  </div>
+
 	  <div id="manual-input-info" class="input">
+		<input id="idManualInput" type="number" placeholder="Номер цели" value="3801" required>
 		<button id="manual-input-button">Ручной ввод отключен</button>
-		<input id="idManualInput" type="number" placeholder="Номер" value="3801" required>
 		<input id="affiliationManualInput" type="number" placeholder="Принадлежность">
 		<input id="heightManualInput" type="number" placeholder="Высота">
 		<input id="speedManualInput" type="number" placeholder="Скорость">
@@ -98,68 +182,7 @@
 	  </div>
 
 
-	  <div id="tables">
-		<div class="import">
-			<input type="file" id="fileInput">
-			<input id="sheet" type="text" placeholder="Название листа">
-			<button id="readFile">Import data</button>
-		  </div>
-		<div id="tableButtons">
-			
-			<button id="exportTable">Export XLSX</button>
-			<button id="changeTable">Переключиться на таблицу с азимутами</button>
-		</div>
 
-		<div id="tableAz" class="table">		  
-			<div class="table-container">
-				<div class="table-inner">
-					<table id="pointTable" border="1" baffiliation="1" cellpadding="4" cellspacing="0">
-						<thead>
-						  <tr>
-							<th rowspan="2">Номер</th>
-							<th rowspan="2">Азимут</th>
-							<th rowspan="2">Дальность</th>
-							<th colspan="3">Характеристики</th>
-							<th rowspan="2">Сигнал</th>
-							<th rowspan="2">Время</th>
-						  </tr>
-						  <tr>
-							<th>Принадлежность</th><th>Высота</th><th>Скорость</th>
-						  </tr>
-						</thead>
-						<tbody>
-						</tbody>
-					  </table>
-				</div>
-			  </div>
-		  </div>
-		  <div id="tableAd" class="table">
-			  <div class="table-container">
-				  <div class="table-inner">
-					  <table id="pointGridTable" border="1" baffiliation="1" cellpadding="3" cellspacing="0">
-						  <thead>
-							<tr>
-							  <th rowspan="2">Номер</th>
-							  <th rowspan="2">Зона,сектор</th>
-							  <th colspan="2">Большой квадрат</th>
-							  <th rowspan="2">Квадраты</th>
-							  <th colspan="3">Характеристики</th>
-							  <th rowspan="2">Сигнал</th>
-							  <th rowspan="2">Время</th>
-							</tr>
-							<tr>
-							  <th>1</th>
-							  <th>2</th>
-							  <th>Принадлежность</th><th>Высота</th><th>Скорость</th>
-							</tr>
-						  </thead>
-						  <tbody>
-						  </tbody>
-						</table>
-				  </div>
-				</div>
-		  </div>
-	  </div>
 
 	  </div>
 

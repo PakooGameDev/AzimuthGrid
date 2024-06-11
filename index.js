@@ -45,7 +45,6 @@ let originCoords = {x:52.04, y:29.10}
 let maxDistance = document.getElementById('gridDistance').value || 400;
 
 let sectorsInfo = [];
-let zoneInfo = [];
 let squareInfo = [];
 let squareHorInfo = [];
 let squareVertInfo = [];
@@ -57,7 +56,14 @@ let zoneCode = {}
 let points = {};
 let allPoints = []
 
+let filteredData = [];
+
 /* ----------------------------------------------------------------------------------------------------------- */
+
+document.getElementById('fileInput').addEventListener('change', function(event) {
+  var fileName = event.target.files[0].name; // Получаем название файла
+  document.getElementById('file-name').textContent = fileName; // Отображаем название файла
+});
 
 // Установка начального состояния
 document.getElementById('tableAz').style.display = 'block'; 
@@ -171,24 +177,28 @@ document.getElementById('encodeButton').addEventListener('click', () => {
   localStorage.setItem('zonesCode', JSON.stringify(zoneCode));
   localStorage.setItem('numbersCode', JSON.stringify(numbersCode));
   localStorage.setItem('sectorCode', JSON.stringify(sectorCode));
+
   drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
 
 
 function encodeSquare(Square){
-  let numbersCodeSaved = JSON.parse(localStorage.getItem('numbersCode'));
-  return numbersCodeSaved[Square] || Square
+  const num = typeof('string') ? parseInt(Square) : Square
+  const numbersCodeSaved = JSON.parse(localStorage.getItem('numbersCode'));
+  return numbersCodeSaved[num] || num
 }
 
 function encodeZone(Zone){
-  let num = parseInt(Zone)
-  let numbersCodeSaved = JSON.parse(localStorage.getItem('zonesCode'));
+  
+  const num =  Zone
+  const numbersCodeSaved = JSON.parse(localStorage.getItem('zonesCode'));
   return numbersCodeSaved[num] || num
 }
 
 function encodeSector(Sector){
-  let numbersCodeSaved = JSON.parse(localStorage.getItem('sectorCode'));
-  return numbersCodeSaved[Sector] || Sector
+  const num = typeof('string') ? parseInt(Sector) : Sector
+  const numbersCodeSaved = JSON.parse(localStorage.getItem('sectorCode'));
+  return numbersCodeSaved[num] || num
 }
 
 /* ----------------------------------------------------------------------------------------------------------- */
@@ -309,17 +319,6 @@ function polarToGeographic(radius, angle) {
   };
 }
 
-function polarToGrid(distance, azimuth) {
-  let polar = polarToGeographic(distance, azimuth);
-  let grid = geoToGridCoords(polar.lat, polar.lng);
-  let sectorAndZone = `${grid.zone}${grid.sector}`;
-  let squareHor = grid.squareHor;
-  let squareVert = grid.squareVert;
-  let squares = `${grid.middleSquare}${grid.smallSquare}/${grid.additionalSquare}`;
-
-  return [sectorAndZone, squareHor, squareVert, squares];
-}
-
 // Функция для определения азимута,дальности,географических координат по положению курсора
 const getInfoUnderCursor = (event) => {
   const rect = canvas.getBoundingClientRect();
@@ -338,34 +337,56 @@ const getInfoUnderCursor = (event) => {
   return {distance: distance, azimuth: angle, coords: coords}
 }
 
+function polarToGrid(distance, azimuth) {
+  let polar = polarToGeographic(distance, azimuth);
+  let grid = geoToGridCoords(polar.lat, polar.lng);
+  let sectorAndZone = `${grid.zone}${grid.sector}`;
+  let squareHor = grid.squareHor;
+  let squareVert = grid.squareVert;
+  let squares = `${grid.middleSquare}${grid.smallSquare}/${grid.additionalSquare}`;
+
+  return [sectorAndZone, squareHor, squareVert, squares];
+}
+
+
 /* ----------------------------------------------------------------------------------------------------------- */
 
 // Функция для определения координат сетки ПВО по географическим координатам
 function geoToGridCoords(x, y) {
-  let sector = 0;
   let zone = 0;
+  let sector = 0;
   let squareHor = 0;
   let squareVert = 0;
   let middleSquare  = 1
   let smallSquare  = 1
   let additionalSquare = 1;
 
+  let zones = [
+    {y1:0, y2:18, x1:72, x2:56, zoneNumber:'07'},
+    {y1:18, y2:36, x1:72, x2:56, zoneNumber:'08'},
+    {y1:36, y2:54, x1:72, x2:56, zoneNumber:'09'},
+    {y1:0, y2:18, x1:56, x2:40, zoneNumber:'17'},
+    {y1:18, y2:36, x1:56, x2:40, zoneNumber:'18'},
+    {y1:36, y2:54, x1:56, x2:40, zoneNumber:'19'},
+  ]
+
+  zones.forEach(el => {
+    if (x <= el.x1 && x >= el.x2 && y >= el.y1 && y <= el.y2) {     
+      zone = encodeZone(el.zoneNumber)
+    }
+  })
+
   sectorsInfo.forEach(el => {
-    if (x <= el.x1 && x >= el.x2 && y >= el.y1 && y <= el.y2) {
+    if (x <= el.x1 && x >= el.x2 && y >= el.y1 && y <= el.y2) { 
       sector = el.sectNumber
     }
   })
 
-  zoneInfo.forEach(el => {
-    if (x <= el.x1 && x >= el.x2 && y >= el.y1 && y <= el.y2) {
-      zone = el.zoneNumber    
-    }
-  })
 
   squareInfo.forEach(el => {
     if (x <= el.x2 && x >= el.x1 && y >= el.y1 && y <= el.y2) {  
-      squareHor = el.horizontalRow; 
-      squareVert = el.verticalRow;
+      squareHor = encodeSquare(el.horizontalRow); 
+      squareVert = encodeSquare(el.verticalRow);
     }
   })
 
@@ -577,7 +598,6 @@ function determineSquareNum(y1, y2, x1, x2, sectNumber, zone) {
   const yStep = 1.5;
 
   sectorsInfo.push({ y1, y2, x1, x2, sectNumber }); // сохраняем координаты и номер сектора
-
   // вычисляем координаты квадратов и определяем их номера по горизонтали и вертикали
   for (let horizontalRow = 4; horizontalRow > 0; horizontalRow--) {
     for (let verticalRow = 5; verticalRow <= 10; verticalRow++) {
@@ -607,6 +627,7 @@ function determineSquareNum(y1, y2, x1, x2, sectNumber, zone) {
   }
   // рисуем номера секторов
   drawText(x1 - 3 * xStep, y1 + 2 * yStep, `${zone}${sectNumber}`, 14, 'red');
+  
 }
 
 function drawZone(y1, y2, x1, x2, zoneNumber) {
@@ -614,8 +635,6 @@ function drawZone(y1, y2, x1, x2, zoneNumber) {
   const yStep = 1.5;
 
   let sectorNumber = 1;
-
-  zoneInfo.push({ y1, y2, x1, x2, zoneNumber });
 
   // отрисовка линий
   for (let y = y1; y <= y2; y += yStep) {
@@ -714,7 +733,6 @@ function drawText(lat, lng, text,fontSize = 10, color = 'black', latStep = 1,lng
 /* ----------------------------------------------------------------------------------------------------------- */
 
 function drawPointsAndLines() {
-
   allPoints = [];
   for (const id in points) {
       const pointsArray = points[id];
@@ -748,7 +766,7 @@ function drawPointsAndLines() {
             number:`'${index === 0 ? id.padStart(6, '00') : id}'`,
             azimuth:point.azimuth,
             distance:point.distance,
-            zoneAndSector:point.zoneAndSector, 
+            sectorAndZone:point.sectorAndZone, 
             squareHor:point.squareHor,
             squareVert:point.squareVert,
             squares:point.squares,
@@ -798,7 +816,7 @@ function fillTable() {
   allPoints.forEach(point => {
     let row = pointsGridTable.insertRow();
     row.insertCell().textContent = point.number;
-    row.insertCell().textContent = point.zoneAndSector;
+    row.insertCell().textContent = point.sectorAndZone;
     row.insertCell().textContent = point.squareHor;
     row.insertCell().textContent = point.squareVert;
     row.insertCell().textContent = point.squares;
@@ -817,12 +835,15 @@ function drawAzimuthalMap(centerLat, centerLng) {
   ctx.clearRect(0, 0, size, size);
 
   sectorsInfo = [];
-  zoneInfo = [];
   squareInfo = [];
 
   const originPolar = toPolar(centerLat, centerLng, centerLat, centerLng);
   drawMarker(originPolar, originName);
   
+  if (borderSet.checked) {
+    drawBorder(centerLat, centerLng);
+  }
+
   if (gridAz.checked) {
     for (let distance = minDistance; distance <= maxDistance; distance += distanceStep) {
       drawCircle(distance);
@@ -834,12 +855,6 @@ function drawAzimuthalMap(centerLat, centerLng) {
     }
   }
 
-  if (borderSet.checked) {
-    drawBorder(centerLat, centerLng);
-  }
-  
-  drawPointsAndLines();
-
   if (gridAd.checked) {
     drawZone(0,18, 72,56,encodeZone('07'));
     drawZone(18,36, 72,56,encodeZone('08'));
@@ -849,6 +864,10 @@ function drawAzimuthalMap(centerLat, centerLng) {
     drawZone(18,36, 56,40,encodeZone('18'));
     drawZone(36,54, 56,40,encodeZone('19'));
   }
+
+  processData(filteredData);
+  
+  drawPointsAndLines();
 
 }
 
@@ -879,6 +898,8 @@ canvas.addEventListener('mouseout', () => {
 
 //считывает Excel файл
 document.getElementById("readFile").addEventListener('click', function readFile() {
+  filteredData = []
+
   const input = document.getElementById('fileInput');
   const file = input.files[0];
 
@@ -898,7 +919,7 @@ document.getElementById("readFile").addEventListener('click', function readFile(
     });
 
     // Отфильтровываем пустые строки
-    const filteredData = dataArray.filter(row => {
+    filteredData = dataArray.filter(row => {
       return row.some(cell => cell !== '');
     });
 
@@ -907,7 +928,7 @@ document.getElementById("readFile").addEventListener('click', function readFile(
     filteredData.shift();
 
     // обрабатываем и рендерим данные
-    processData(filteredData);
+    drawAzimuthalMap(originCoords.x, originCoords.y); // ререндер холста ???? 
   };
   reader.readAsArrayBuffer(file);
 }, false);
@@ -925,6 +946,7 @@ document.getElementById("exportTable").addEventListener('click',function exportT
 
 // обрабатываем и рендерим Excel данные
 function processData(data) {
+
   // очищаем предыдущие точки
   points = {};
   allPoints = [];
@@ -935,24 +957,25 @@ function processData(data) {
     
     // получаем данные и записываем их в переменные, в зависимости от типа данных таблицы, которую мы импортировали
     let [azimuth, distance, affiliation, height, speed, signal, time] = data[0].length === 8 ? 
-      [parseInt(row[1]), parseInt(row[2]), row[3], row[4], row[5], row[6], row[7]] : [undefined, undefined, row[5], row[6], row[7], row[8], row[9]]; // азимуты и дальности рассчитываются по Сетке ПВО !!!!!!!!!!! Доделать !!!!!!!!!!!!!!!!!!
+      [parseInt(row[1]), parseInt(row[2]), row[3], row[4], row[5], row[6], row[7]] : [undefined, undefined, row[5], row[6], row[7], row[8], row[9]]; // азимуты и дальности рассчитываются по Сетке ПВО
   
 
+    const calcData = polarToGrid(distance, azimuth)
 
     // получаем данные о квадратах сетки ПВО, в зависимости от входных данных (если таблица с азимутами - расчитываем)
     const [sectorAndZone, squareHor, squareVert,squares] = data[0].length === 8 ? 
-    polarToGrid(distance, azimuth) : [row[1], row[2], row[3],row[4]]
+    [calcData[0], calcData[1], calcData[2], calcData[3]] : [row[1], row[2], row[3],row[4]]
 
-    let sectorCoords = findSectorCoords(sectorAndZone);
-    let squareCoord = getFinalCoords(sectorCoords.sectorY1,sectorCoords.sectorY2,sectorCoords.sectorX1,sectorCoords.sectorX2,squareHor,squareVert,squares);
-
+    
     if(!(data[0].length === 8)) {
+      let sectorCoords = findSectorCoords(sectorAndZone);
+      let squareCoord = getFinalCoords(sectorCoords.sectorY1,sectorCoords.sectorY2,sectorCoords.sectorX1,sectorCoords.sectorX2,squareHor,squareVert,squares);
+  
       azimuth = parseInt(toPolar(squareCoord.x, squareCoord.y,originCoords.x, originCoords.y).angle); // Convert
       distance = parseInt(toPolar(squareCoord.x, squareCoord.y,originCoords.x, originCoords.y).distance); // необходимо получать дальность и азимут по этим данным sectorAndZone squareHor squareVert squares  
     }
-
-      
-    const pointData = { azimuth, distance, zoneAndSector: sectorAndZone, squareHor, squareVert, squares, affiliation, height, speed, signal, time };
+    
+    const pointData = { azimuth, distance, sectorAndZone, squareHor, squareVert, squares, affiliation, height, speed, signal, time };
 
     //Проверяем, существует ли уже массив по ключу targetId в объекте points. Если да - добавляем точку, нет - создаем пустой массив с таким ключем
     points[targetId] = points[targetId] || []; 
@@ -967,8 +990,6 @@ function processData(data) {
       allPoints = allPoints.concat(points[id]);
     }
   }
-
-  drawAzimuthalMap(originCoords.x, originCoords.y); // ререндер холста ???? 
 }
 
 /* ----------------------------------------------------------------------------------------------------------- */
@@ -1024,7 +1045,7 @@ canvas.addEventListener('mousedown', (e) => {
 const getCursorInfo = (e) => {
   const info = getInfoUnderCursor(e);
   return {
-    sector: geoToGridCoords(info.coords.lat.toFixed(2), info.coords.lng.toFixed(2)),
+    grid: geoToGridCoords(info.coords.lat.toFixed(2), info.coords.lng.toFixed(2)),
     azimuth: parseInt(info.azimuth.toFixed(2)),
     distance: parseInt(info.distance.toFixed(2))
   };
@@ -1041,15 +1062,15 @@ const removePoint = (idToRemove) => {
 
 // Функция для добавления точки
 const addPoint = (cursorInfo, id, affiliation, height, speed, signal, time) => {
-  const { sector, azimuth, distance } = cursorInfo;
+  const { grid, azimuth, distance } = cursorInfo;
   const point = {
     id,
     azimuth,
     distance,
-    zoneAndSector: `${sector.zone}${sector.sector}`,
-    squareHor: sector.squareHor,
-    squareVert: sector.squareVert,
-    squares: `${sector.middleSquare}${sector.smallSquare}/${sector.additionalSquare}`,
+    sectorAndZone: `${grid.zone}${grid.sector}`,
+    squareHor: grid.squareHor,
+    squareVert: grid.squareVert,
+    squares: `${grid.middleSquare}${grid.smallSquare}/${grid.additionalSquare}`,
     affiliation,
     height,
     speed,
@@ -1071,9 +1092,7 @@ function findSectorCoords(sectorAndZone) {
 
   if (restOfTheNumber == '18') {
     let x1 = 18;
-    let x2 = 36;
     let y1 = 56;
-    let y2 = 40;
     let sectorNumber = 1;
 
     for (let i = 0; i < 4; i++) { // 4 columns
@@ -1177,13 +1196,14 @@ azDistShit.forEach((coord, index) => {
   //const azimuth = parseInt(toPolar(coord[0], coord[1],originCoords.x, originCoords.y).angle); // Convert
  // const distance = parseInt(toPolar(coord[0], coord[1],originCoords.x, originCoords.y).distance);
 
-  const [sectorAndZone, squareHor, squareVert,squares] = polarToGrid(coord[1], coord[0])
+ let calcData = polarToGrid(coord[1], coord[0])
+  const [sectorAndZone, squareHor, squareVert,squares] = [calcData[0], calcData[1], calcData[2], calcData[3]]
 
   const pointData = {
     number:3801,
     azimuth:coord[0].toFixed(2),
     distance:coord[1].toFixed(2),
-    zoneAndSector:sectorAndZone, 
+    sectorAndZone:sectorAndZone, 
     squareHor:squareHor,
     squareVert:squareVert,
     squares:squares,
