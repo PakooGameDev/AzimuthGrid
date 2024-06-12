@@ -58,6 +58,9 @@ let allPoints = []
 
 let filteredData = [];
 
+let allFootnotes = [];
+let allRegFootnotes = [];
+let allSignalFootnotes = [];
 /* ----------------------------------------------------------------------------------------------------------- */
 
 document.getElementById('fileInput').addEventListener('change', function(event) {
@@ -744,6 +747,9 @@ function drawText(lat, lng, text,fontSize = 10, color = 'black', latStep = 1,lng
 /* ----------------------------------------------------------------------------------------------------------- */
 function drawPointsAndLines() {
   allPoints = [];
+  allFootnotes = [];
+  allRegFootnotes = [];
+  allSignalFootnotes = [];
   for (const id in points) {
     const pointsArray = points[id];
     let previousPoint = null;
@@ -759,6 +765,7 @@ function drawPointsAndLines() {
         if (index === 0) {
           firstPoint = point 
         }
+
         
         // Рисуем разные формы в зависимости от сигнала
         ctx.beginPath();
@@ -782,8 +789,8 @@ function drawPointsAndLines() {
           ctx.fillStyle = 'black';
           ctx.fill();
         }
-        if ( index === 0) {  //index % 4 == 0 ||
-          drawFootnote(ctx, point, coords, id);
+        if ( index === 0) {  //index % 4 == 0 ||       
+          drawFootnote(ctx, point, coords, id);   
         }
         // Рисуем линию к предыдущей точке
         if (previousPoint) {
@@ -885,10 +892,46 @@ function getRandomNumber(min, max) {
   return Math.random() * (max - min) + min;
 }
 
+// Функция для проверки пересечения footnote с учетом размеров бокса
+function checkFootnoteCollision(coords, allFootnotes, boxWidth, boxHeight) {
+  return allFootnotes.some(footnote => {
+    return  Math.abs(footnote.x - coords.x) < boxWidth && Math.abs(footnote.y - coords.y) < boxHeight;
+  });
+}
+
+
+function adjustFootnotePosition(coords, allFootnotes, boxWidth, boxHeight, point) {
+  let adjustedCoords = { ...coords };
+
+  const yDirection = Math.random() < 0.5 ? -1 : 1;
+
+  if(checkFootnoteCollision(adjustedCoords, allFootnotes, boxWidth, boxHeight)){
+    do { 
+      // Используем вашу функцию для изменения координат
+      const yOffset = (point.azimuth >= 90 && point.azimuth <= 270) ? 1 : -1;
+
+      adjustedCoords = {
+        x: adjustedCoords.x,
+        y: adjustedCoords.y + yOffset * yDirection
+      }
+
+    } while (checkFootnoteCollision(adjustedCoords, allFootnotes, boxWidth, boxHeight)); // Повторяем, пока не найдем свободное место
+    adjustedCoords.x += (point.azimuth >= 180 ? -getRandomNumber(5, 15) : getRandomNumber(5, 15));
+  } 
+  return adjustedCoords;
+}
+
 function drawFootnote(ctx, point, coords, id) {
 
-  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -getRandomNumber(15, 35) : getRandomNumber(15, 35)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(0, 45) : -getRandomNumber(0, 45))}
+  // Определяем размеры бокса для footnote
+  const boxWidth = 80;
+  const boxHeight = 25;
 
+  // Корректируем позицию, если есть пересечение
+  let finalCoords = adjustFootnotePosition(coords, allFootnotes, boxWidth, boxHeight, point);
+  
+  // Добавляем новый footnote в массив
+  allFootnotes.push({ x: finalCoords.x, y: finalCoords.y });
 
   ctx.beginPath();
   ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
@@ -949,8 +992,15 @@ function drawFootnote(ctx, point, coords, id) {
 }
 
 function drawRegenFootnote(ctx, point, coords, firstPoint) {
-  
-  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -getRandomNumber(5, 10) : getRandomNumber(5, 10)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(0, 25) : -getRandomNumber(0, 25))}
+
+  // Определяем размеры бокса для footnote
+  const boxWidth = 60;
+  const boxHeight = 25;
+
+  // Корректируем позицию, если есть пересечение
+  let finalCoords = adjustFootnotePosition(coords, allFootnotes, boxWidth, boxHeight, point);
+ // Добавляем новый footnote в массив
+ allFootnotes.push({ x: finalCoords.x, y: finalCoords.y });
 
   ctx.beginPath();
   ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
@@ -1007,8 +1057,16 @@ function drawRegenFootnote(ctx, point, coords, firstPoint) {
 }
 
 function drawSignalFootnote(ctx, point, coords) {
+ 
+  // Определяем размеры бокса для footnote
+  const boxWidth = 40;
+  const boxHeight = 25;
 
-  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -getRandomNumber(0, 6) : getRandomNumber(0, 6)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(0, 25) : -getRandomNumber(0, 25))}
+  // Корректируем позицию, если есть пересечение
+  let finalCoords = adjustFootnotePosition(coords, allFootnotes, boxWidth, boxHeight, point);
+
+
+  allFootnotes.push({ x: finalCoords.x, y: finalCoords.y });
 
   ctx.beginPath();
   ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
