@@ -206,7 +206,8 @@ function encodeSector(Sector){
 const gridAz = document.getElementById('gridAz');
 const gridAd = document.getElementById('gridAD');
 const borderSet = document.getElementById('borderGen');
-
+const signalsGen = document.getElementById('signalsGen');
+const regen = document.getElementById('regen');
 // обработка галочки "включить сетку ПВО"
 gridAd.addEventListener('change', () => {
   drawAzimuthalMap(originCoords.x, originCoords.y); 
@@ -219,6 +220,16 @@ borderSet.addEventListener('change', () => {
 
 // обработка галочки "включить азимутальную сетку"
 gridAz.addEventListener('change', () => {
+  drawAzimuthalMap(originCoords.x, originCoords.y); 
+});
+
+// обработка галочки "включить сигналы"
+signalsGen.addEventListener('change', () => {
+  drawAzimuthalMap(originCoords.x, originCoords.y); 
+});
+
+// обработка галочки "включить 517"
+regen.addEventListener('change', () => {
   drawAzimuthalMap(originCoords.x, originCoords.y); 
 });
 
@@ -736,7 +747,7 @@ function drawPointsAndLines() {
   for (const id in points) {
     const pointsArray = points[id];
     let previousPoint = null;
-
+    let firstPoint;
     pointsArray.forEach((point, index) => {
       if (point) {
         const pixelDistance = point.distance / maxDistance * scaleCoef;
@@ -745,7 +756,10 @@ function drawPointsAndLines() {
           x: center.x + pixelDistance * Math.cos(radian),
           y: center.y + pixelDistance * Math.sin(radian)
         };
-       
+        if (index === 0) {
+          firstPoint = point 
+        }
+        
         // Рисуем разные формы в зависимости от сигнала
         ctx.beginPath();
         ctx.lineWidth = 1; // Толщина линии
@@ -758,13 +772,17 @@ function drawPointsAndLines() {
         } else if (point.signal == 332) {
           // Рисуем крестик
           drawCross(ctx, coords);
+        } else if (point.signal == 336 && signalsGen.checked) {
+          drawSignalFootnote(ctx, point, coords)
+        } else if ((point.signal == 517 || (index % 4 == 0 && index != 0)) && regen.checked ) {
+          drawRegenFootnote(ctx, point, coords, firstPoint)  
         } else {
           // Рисуем точку, если сигнал не соответствует специальным условиям
           ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
           ctx.fillStyle = 'black';
           ctx.fill();
         }
-        if (index === 0) {
+        if ( index === 0) {  //index % 4 == 0 ||
           drawFootnote(ctx, point, coords, id);
         }
         // Рисуем линию к предыдущей точке
@@ -869,10 +887,13 @@ function getRandomNumber(min, max) {
 
 function drawFootnote(ctx, point, coords, id) {
 
-  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -15 : getRandomNumber(15, 35)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(5, 45) : -getRandomNumber(5, 45))}
+  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -getRandomNumber(15, 35) : getRandomNumber(15, 35)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(0, 45) : -getRandomNumber(0, 45))}
 
 
   ctx.beginPath();
+  ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
+  ctx.fillStyle = 'black';
+  ctx.fill();
   ctx.moveTo(coords.x, coords.y);
   ctx.lineTo(finalCoords.x, finalCoords.y);
   ctx.strokeStyle = 'black';
@@ -926,6 +947,103 @@ function drawFootnote(ctx, point, coords, id) {
   ctx.fillText(point.height, dividerCenter.x + 15, dividerCenter.y - 7);// Further below the line
   ctx.fillText(point.speed, dividerCenter.x - (point.azimuth >= 180 ? -15 : 15) , dividerCenter.y + 7); // Below the line
 }
+
+function drawRegenFootnote(ctx, point, coords, firstPoint) {
+  
+  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -getRandomNumber(5, 10) : getRandomNumber(5, 10)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(0, 25) : -getRandomNumber(0, 25))}
+
+  ctx.beginPath();
+  ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
+  ctx.fillStyle = 'black';
+  ctx.fill();
+
+  ctx.strokeStyle = '#707070';
+  ctx.moveTo(coords.x, coords.y);
+  ctx.lineTo(finalCoords.x, finalCoords.y);
+  ctx.stroke();
+
+  const lineLength = point.azimuth >= 180 ? -60 : 60; // Adjust length as needed
+
+  const lineEnd = {
+    x: finalCoords.x + lineLength,
+    y: finalCoords.y
+  };
+
+  // Draw the long line
+  ctx.beginPath();
+  ctx.moveTo(finalCoords.x, finalCoords.y);
+  ctx.lineTo(lineEnd.x, lineEnd.y);
+  ctx.stroke();
+
+  ctx.beginPath();
+  // Draw the small dividing line
+  const dividerLength = 10; // Adjust length as needed
+  const dividerCenter = {
+    x: (finalCoords.x + lineEnd.x) / 2,
+    y: (finalCoords.y + lineEnd.y) / 2,
+  };
+
+  ctx.moveTo(
+    dividerCenter.x,
+    dividerCenter.y + dividerLength
+  );
+  ctx.lineTo(
+    dividerCenter.x,
+    dividerCenter.y - dividerLength
+  );
+  ctx.stroke();
+
+  // Draw the data above and below the dividing line
+  ctx.font = '10px Arial';
+  ctx.fillStyle = '#707070';
+
+  let afflication = point.affiliation != undefined ? point.affiliation : firstPoint.affiliation
+  let height = point.height != undefined ? point.height : firstPoint.height
+  let speed = point.speed != undefined ? point.speed : firstPoint.speed
+
+  ctx.fillText(afflication, dividerCenter.x - 15, dividerCenter.y - 7);  // Above the line
+  ctx.fillText(height, dividerCenter.x + 15, dividerCenter.y - 7);// Further below the line
+  ctx.fillText(speed, dividerCenter.x - (point.azimuth >= 180 ? -15 : 15) , dividerCenter.y + 7); // Below the line
+}
+
+function drawSignalFootnote(ctx, point, coords) {
+
+  let finalCoords = {x:coords.x + (point.azimuth >= 180 ? -getRandomNumber(0, 6) : getRandomNumber(0, 6)), y:coords.y + (point.azimuth >= 90 && point.azimuth <= 270 ? getRandomNumber(0, 25) : -getRandomNumber(0, 25))}
+
+  ctx.beginPath();
+  ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI);
+  ctx.fillStyle = 'black';
+  ctx.fill();
+  ctx.strokeStyle = '#707070';
+  ctx.moveTo(coords.x, coords.y);
+  ctx.lineTo(finalCoords.x, finalCoords.y);
+  ctx.stroke();
+
+  const lineLength = point.azimuth >= 180 ? -30 : 30; // Adjust length as needed
+
+  const lineEnd = {
+    x: finalCoords.x + lineLength,
+    y: finalCoords.y
+  };
+
+  // Draw the long line
+  ctx.beginPath();
+  ctx.moveTo(finalCoords.x, finalCoords.y);
+  ctx.lineTo(lineEnd.x, lineEnd.y);
+  ctx.stroke();
+
+
+  const dividerCenter = {
+    x: (finalCoords.x + lineEnd.x) / 2,
+    y: (finalCoords.y + lineEnd.y) / 2,
+  };
+
+// Draw the data above and below the dividing line
+  ctx.font = '10px Arial';
+  ctx.fillStyle = '#707070';
+  ctx.fillText(point.signal, dividerCenter.x, dividerCenter.y - 7);  // Above the line
+}
+
 
 function fillTable() {
   let pointsTable = document.getElementById('pointTable').getElementsByTagName('tbody')[0];

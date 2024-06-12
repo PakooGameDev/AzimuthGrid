@@ -297,6 +297,12 @@ input:focus, button:focus, textarea:focus, select:focus {
 	align-self: center;
   }
   
+#checkers {
+	display:grid;
+	grid-template-rows: 1fr 1fr;
+	grid-template-columns: 1fr 1fr ;
+}
+
   #encodeBlock{
 	display: flex;
 	align-items: center;
